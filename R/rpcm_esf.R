@@ -101,7 +101,7 @@ rpcm_esf <- function(raw_score,
         length(item_difficulties),
         ...
     )
-    item_parameters <- item_difficulties * item_time_limits
+    item_parameters <- exp(item_difficulties + item_time_limits)
 
     ## Each item parameter needs to be positive due to the log function in the esf function
     if (any(item_parameters <= 0)) {

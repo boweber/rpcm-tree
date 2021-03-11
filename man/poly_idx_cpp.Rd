@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{poly_idx_cpp}
 \alias{poly_idx_cpp}
-\title{Computes a matrix containing every possible score combination
+\title{Generates a matrix containing every possible score combination
 where each row sum is equal to the provided esf order.}
 \usage{
 poly_idx_cpp(p, M)
@@ -16,7 +16,7 @@ poly_idx_cpp(p, M)
 Every possible score combination as a matrix
 }
 \description{
-Computes a matrix containing every possible score combination
+Generates a matrix containing every possible score combination
 where each row sum is equal to the provided esf order.
 }
 \examples{

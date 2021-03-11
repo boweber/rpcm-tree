@@ -1,3 +1,5 @@
+library(tidyr)
+library(dplyr)
 load_all()
 
 test_that("occurrence possibilities", {
@@ -27,7 +29,39 @@ test_that("occurrence possibilities", {
     )
 })
 
+test_that("rpcm_esf", {
+    skip("rpcm esf c version not functional")
+    y <- matrix(c(
+        3, 0, 1,
+        2, 1, 0,
+        1, 3, 3,
+        0, 1, 1
+    ), ncol = 3, byrow = TRUE)
+
+    item_time_limits <- rep.int(1, ncol(y))
+    persons_raw_scores <- rowSums(y)
+    items_raw_scores <- colSums(y)
+
+    esf_r <- rpcm_esf(
+        items_raw_scores[1],
+        apply(y, 2, mean),
+        item_time_limits,
+        0,
+        1
+    )
+
+    esf_c <- rpcm_esf_c(
+        items_raw_scores[1],
+        apply(y, 2, mean),
+        item_time_limits,
+        0,
+        1
+    )
+    expect_equal(esf_r[[1]], esf_c[[1]])
+})
+
 test_that("rpcm gradient", {
+    skip("rpcm gradient not relevant")
     y <- matrix(c(
         3, 0, 1,
         2, 1, 0,
@@ -61,7 +95,6 @@ test_that("rpcm gradient", {
 })
 
 test_that("rpcm", {
-    skip("rpcm currently not relevant")
     y <- matrix(c(
         3, 0, 1,
         2, 1, 0,
@@ -72,9 +105,10 @@ test_that("rpcm", {
 })
 
 test_that("rpcm", {
+    skip("rpcm currently not relevant")
     source("tests+Extensions.R")
-    attention <- generate_glmer_data()
-    attention$Item <- as.factor(attention$Item)
+
+    testdata <- gen_test_data()
 
     fit2_item_estimates <- rpcm(
         transform_glmer_data(attention)
@@ -86,8 +120,13 @@ test_that("rpcm", {
         family = poisson
     )
 
+    testdata_long <- testdata %>%
+        mutate(id = 1:nrow(testdata)) %>%
+        gather(item1:item3, key = "item", value = "count")
+    glmer_fit <- glmer(count ~ 0 + item + (1 | id), data = testdata_long, family = "poisson")
+
     expect_equal(
-        unname(exp(lme4::fixef(fit1))),
+        unname(exp(lme4::fixef(glmer_fit))),
         fit2_item_estimates$coefficients,
         tolerance = 0.00001
     )

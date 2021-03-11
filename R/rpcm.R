@@ -10,6 +10,7 @@ rpcm <- function(y,
                  iterlim = maxit,
                  ...) {
     y <- data.matrix(y)
+    number_of_items <- ncol(y)
 
     if (any(!sapply(y, is_integer))) {
         stop("the rasch poisson count model does not support non integer values.")
@@ -23,25 +24,7 @@ rpcm <- function(y,
         maxit <- iterlim
     }
 
-    number_of_items <- ncol(y)
-    peoples_total_scores <- rowSums(y)
-    items_total_scores <- colSums(y)
-
-    if (any(peoples_total_scores <= 0)) {
-        stop(paste(
-            toString(peoples_total_scores),
-            "is invalid as peoples_total_scores (func: rpcm)."
-        ))
-    }
-
-    if (any(items_total_scores <= 0)) {
-        stop(paste(
-            toString(items_total_scores),
-            "is invalid as items_total_scores (func: rpcm)."
-        ))
-    }
-
-    ## sets default item timelimits
+    ### sets default item timelimits
     if (is.null(item_time_limits)) {
         item_time_limits <- rep.int(1, number_of_items)
     } else {
@@ -58,29 +41,15 @@ rpcm <- function(y,
             sep = ""
         )
     }
-
-    ## initial values for optim
-    initial_values <- apply(y, 2, mean)
-    ## conditional log likelihood function, which should be maximized by optim
-    cloglik <- make_cloglike(
-        items_total_scores,
-        peoples_total_scores,
-        item_time_limits,
-        y,
-        engine = "C"
-    )
-    ## accompanying analytical gradient func
-    # gradient <- make_gradient(
-    #     peoples_total_scores,
-    #     items_total_scores,
-    #     item_time_limits,
-    #     engine = "C"
-    # )
-
     opt <- optim(
-        par = initial_values,
-        fn = cloglik,
-        gr = NULL,
+        par = apply(y, 2, mean),
+        fn = rpcm_log_likelihood,
+        # gr = rpcm_analytical_gradient,
+        col_sums = colSums(y),
+        row_sums = rowSums(y),
+        item_time_limits = log(item_time_limits),
+        engine = "C",
+        factorial_like_component = sum(lfactorial(y)),
         method = "BFGS",
         # lower = (1 / .Machine$double.xmax),
         hessian = hessian,
@@ -90,7 +59,6 @@ rpcm <- function(y,
             ...
         )
     )
-
     best_parameters <- opt$par
     # names(best_parameters) <- colnames(y)
 

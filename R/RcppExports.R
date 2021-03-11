@@ -2,8 +2,8 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' Generates a matrix containing every possible score combination
-#' where each row sum is equal to the provided esf order. 
-#' 
+#' where each row sum is equal to the provided esf order.
+#'
 #' @param p The esf order of the elementary symmetric function.
 #' @param M The number of items
 #' @return Every possible score combination as a matrix
@@ -11,5 +11,9 @@
 #' poly_idx_cpp(5, 7)
 poly_idx_cpp <- function(p, M) {
     .Call('_rpcm_tree_poly_idx_cpp', PACKAGE = 'rpcm.tree', p, M)
+}
+
+rpcm_esf_c <- function(rawScore, itemDifficulties, itemTimeLimits, order, rawScoreIndex) {
+    .Call('_rpcm_tree_rpcm_esf_c', PACKAGE = 'rpcm.tree', rawScore, itemDifficulties, itemTimeLimits, order, rawScoreIndex)
 }
 
