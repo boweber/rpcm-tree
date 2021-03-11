@@ -120,8 +120,9 @@ rpcm_esf <- function(raw_score,
     names(esf) <- 0L:order
 
     esf[[1L]] <- sum(
-        sapply(
+        apply(
             possibilities,
+            1,
             function(y) {
                 exp(sum(y * log(item_parameters) - lfactorial(y)))
             }
@@ -141,11 +142,25 @@ rpcm_esf <- function(raw_score,
         }
         derivatives <- c()
         for (item_index in seq_len(length(item_difficulties))) {
-            derivatives <- c(
-                derivatives,
-                (possibilities[raw_score_index, item_index] / item_difficulties[item_index]) *
-                    esf[[1L]]
-            )
+          
+          d <- sum(
+            apply(
+              possibilities, # ist eine Matrix
+              1, 
+              function(y) {
+                exp(sum(y * log(item_parameters) - lfactorial(y))) *
+                  (y[item_index] / item_difficulties[item_index])
+              }
+            ) 
+          )
+          
+          derivatives <- c(derivatives, d)
+          
+            # derivatives <- c(
+            #     derivatives,
+            #     (possibilities[raw_score_index, item_index] / item_difficulties[item_index]) *
+            #         esf[[1L]]
+            # )
         }
 
         esf[[2L]] <- derivatives
