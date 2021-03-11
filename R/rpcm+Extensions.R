@@ -138,7 +138,8 @@ make_gradient <- function(persons_raw_scores,
             ))
         }
 
-        return(gradient)
+        return(-gradient)
+        # bei -cll muss gradient auch - haben sonst passen vorzeichen nicht
     }
     return(gradient_func)
 }
