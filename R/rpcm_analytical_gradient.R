@@ -14,12 +14,12 @@ rpcm_analytical_gradient <- function(difficulty,
             difficulty,
             item_time_limits,
             1,
-            raw_score_index,
             engine
         )
 
         esf_result <- esf_result + ((1 / esf[[1]]) * esf[[2]])
     }
+
 
     # gradient <- c()
     # for (item_index in seq_len(length(col_sums))) {

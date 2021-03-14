@@ -13,3 +13,7 @@ poly_idx_cpp <- function(p, M) {
     .Call('_rpcm_tree_poly_idx_cpp', PACKAGE = 'rpcm.tree', p, M)
 }
 
+rpcm_esf_c <- function(rawScore, itemDifficulties, itemTimeLimits, order) {
+    .Call('_rpcm_tree_rpcm_esf_c', PACKAGE = 'rpcm.tree', rawScore, itemDifficulties, itemTimeLimits, order)
+}
+

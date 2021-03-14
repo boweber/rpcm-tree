@@ -13,14 +13,39 @@ NumericMatrix na_matrix(int n, int l)
 
 long factorial(int n)
 {
-  if (n == 0)
+  int i, result = 1;
+  for (i = 1; i <= n; i++)
   {
-    return 1;
+    result = result * i;
   }
-  else
+  return result;
+}
+
+double applyESFComputation(NumericMatrix matrix,
+                           int factorIndex,
+                           bool shouldUseIndex,
+                           NumericVector itemParameters)
+{
+  double result = 0;
+  for (int row_index = 0; row_index < matrix.nrow(); row_index++)
   {
-    return (n * factorial(n - 1));
+    double row_result = 0;
+    for (int col_index = 0; col_index < matrix.ncol(); col_index++)
+    {
+      int y = matrix(row_index, col_index);
+      double itemParameter = itemParameters[col_index];
+      // exp(log(itemParameters[col_index])) = itemParameters[col_index]
+      row_result = row_result + (y * itemParameter - log(factorial(y)));
+    }
+    row_result = exp(row_result);
+    if (shouldUseIndex)
+    {
+      row_result = row_result * matrix(row_index, factorIndex);
+    }
+
+    result = result + row_result;
   }
+  return result;
 }
 
 //' Generates a matrix containing every possible score combination
@@ -58,30 +83,16 @@ NumericMatrix poly_idx_cpp(int p, int M)
   return out;
 }
 
-// FIXME: Currently not working
+// [[Rcpp::export]]
 List rpcm_esf_c(int rawScore,
                 NumericVector itemDifficulties,
                 NumericVector itemTimeLimits,
-                int order,
-                int rawScoreIndex)
+                int order)
 {
-
-  double first_order_result = 0;
   NumericMatrix possibilities = poly_idx_cpp(rawScore, itemTimeLimits.length());
   NumericVector itemParameters = itemDifficulties + itemTimeLimits;
-  for (int p_index = 0; p_index < possibilities.nrow(); p_index++)
-  {
-    double p_col_result = 0;
-    for (int p_col_index = 0; p_col_index < possibilities.ncol(); p_col_index++)
-    {
-      int y = possibilities(p_index, p_col_index);
-      // log(exp(itemParameters[p_col_index])) == itemParameters[p_col_index]
-      p_col_result = p_col_result + (y * itemParameters[p_col_index] - log(factorial(y)));
-    }
-    first_order_result = first_order_result + exp(p_col_result);
-  }
-
-  NumericVector first_order = {first_order_result};
+  // a vector containing just one value
+  NumericVector first_order = {applyESFComputation(possibilities, 1, false, itemParameters)};
 
   if (order == 0)
   {
@@ -93,7 +104,7 @@ List rpcm_esf_c(int rawScore,
     NumericVector derivatives(itemDifficulties.length());
     for (int item_index = 0; item_index < itemDifficulties.length(); item_index++)
     {
-      derivatives[item_index] = (possibilities(rawScoreIndex, item_index) / itemDifficulties[item_index]) * first_order_result;
+      derivatives[item_index] = applyESFComputation(possibilities, item_index, true, itemParameters);
     }
 
     List result = List::create(first_order, derivatives);
