@@ -1,8 +1,12 @@
+
+## Note: The parameter 'factorial_like_component' is required to
+## pass the same argument to the rpcm_log_likelihood func by optim.
 rpcm_analytical_gradient <- function(difficulty,
                                      col_sums,
                                      row_sums,
                                      item_time_limits,
-                                     engine = c("R", "C")) {
+                                     engine = c("R", "C"),
+                                     factorial_like_component) {
     esf_result <- rep(0, length(col_sums))
     for (raw_score_index in seq_len(length(row_sums))) {
         esf <- rpcm_esf(
@@ -17,20 +21,13 @@ rpcm_analytical_gradient <- function(difficulty,
         esf_result <- esf_result + ((1 / esf[[1]]) * esf[[2]])
     }
 
-    gradient <- c()
-    for (item_index in seq_len(length(col_sums))) {
-        item_gradient <- (col_sums[item_index] / difficulty[item_index]) -
-            esf_result[item_index]
+    # gradient <- c()
+    # for (item_index in seq_len(length(col_sums))) {
+    #     item_gradient <- (col_sums[item_index] / difficulty[item_index]) -
+    #         esf_result[item_index]
+    #
+    #     gradient <- c(gradient, item_gradient)
+    # }
 
-        if (length(item_gradient) != 1) {
-            stop(paste(
-                toString(item_gradient),
-                "is invalid as item gradient (func: rpcm_analytical_gradient)"
-            ))
-        }
-
-        gradient <- c(gradient, item_gradient)
-    }
-
-    return(-gradient)
+    return(-(col_sums - esf_result))
 }

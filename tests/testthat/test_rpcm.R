@@ -2,35 +2,30 @@ library(tidyr)
 library(dplyr)
 load_all()
 
-test_that("occurrence possibilities", {
+test_that("raw score possibilities", {
     raw_score <- 10
     number_of_items <- 4
-
-    ## time for raw_score = 5, number_of_items = 9 -> 211.1 s
     expect_true(
         all(
             rowSums(
-                (occurrence_possibilities(raw_score, number_of_items))
+                (raw_score_possibilities(raw_score, number_of_items))
             ) == raw_score
         )
     )
-    ## time -> 6.6 s (includes time to compute r version with raw score = 10 and number of items 4)
-
-    skip("Skipping occurrence possibilities C test for performance reasons")
-    raw_score <- 5
-    number_of_items <- 9
+    raw_score <- 7
+    number_of_items <- 6
 
     expect_true(
         all(
             rowSums(
-                (occurrence_possibilities(raw_score, number_of_items, "C"))
+                (raw_score_possibilities(raw_score, number_of_items, "C"))
             ) == raw_score
         )
     )
 })
 
-test_that("rpcm_esf", {
-    skip("rpcm esf c version not functional")
+test_that("rpcm esf", {
+    skip("rpcm esf c version not yet functional")
     y <- matrix(c(
         3, 0, 1,
         2, 1, 0,
@@ -61,73 +56,50 @@ test_that("rpcm_esf", {
 })
 
 test_that("rpcm gradient", {
-    skip("rpcm gradient not relevant")
-    y <- matrix(c(
-        3, 0, 1,
-        2, 1, 0,
-        1, 3, 3,
-        0, 1, 1
-    ), ncol = 3, byrow = TRUE)
-
-    item_time_limits <- rep.int(1, ncol(y))
-    persons_raw_scores <- rowSums(y)
-    items_raw_scores <- colSums(y)
-
-    cloglike <- make_cloglike(
-        items_raw_scores,
-        persons_raw_scores,
-        item_time_limits,
-        y,
-        "C"
+    item_time_limits <- log(c(1, 1, 1))
+    row_sums <- c(11, 11, 12)
+    col_sums <- c(8, 10, 16)
+    parameters <- c(3, 5, 4)
+    custom_gradient <- rpcm_analytical_gradient(
+        difficulty = parameters,
+        col_sums = col_sums,
+        row_sums = row_sums,
+        item_time_limits = item_time_limits,
+        engine = "C"
     )
-
-    gradient <- make_gradient(
-        persons_raw_scores,
-        items_raw_scores,
-        item_time_limits,
-        "C"
+    numeric_gradient <- numDeriv::grad(
+        func = rpcm_log_likelihood,
+        x = parameters,
+        col_sums = col_sums,
+        row_sums = row_sums,
+        item_time_limits = item_time_limits,
+        engine = "C",
+        factorial_like_component = 3 ## dummy (not relevant for the gradient)
     )
-    parameters <- apply(y, 2, mean)
-    expect_equal(
-        unname(gradient(parameters)),
-        numDeriv::grad(cloglike, parameters)
-    )
+    expect_equal(custom_gradient, numeric_gradient)
 })
 
-test_that("rpcm", {
-    y <- matrix(c(
-        3, 0, 1,
-        2, 1, 0,
-        1, 3, 3,
-        0, 1, 1
-    ), ncol = 3, byrow = TRUE)
-    expect_warning(result <- rpcm(y), regexp = NA)
-})
-
-test_that("rpcm", {
-    skip("rpcm currently not relevant")
+test_that("rpcm test", {
     source("tests+Extensions.R")
 
-    testdata <- gen_test_data()
-
-    fit2_item_estimates <- rpcm(
-        transform_glmer_data(attention)
-    )
-
-    fit1 <- lme4::glmer(
-        Hit ~ -1 + Item + (1 | ID),
-        data = attention,
-        family = poisson
-    )
-
+    true_deltas <- seq(from = 2, to = 4, by = 1)
+    number_of_people <- 4
+    testdata <- gen_test_data(true_deltas, number_of_people)
     testdata_long <- testdata %>%
         mutate(id = 1:nrow(testdata)) %>%
-        gather(item1:item3, key = "item", value = "count")
-    glmer_fit <- glmer(count ~ 0 + item + (1 | id), data = testdata_long, family = "poisson")
+        gather(-id, key = "item", value = "count")
+
+    tictoc::tic("glmer")
+    glmer_fit <- lme4::glmer(count ~ 0 + item + (1 | id), data = testdata_long, family = "poisson")
+    glmer_result <- unname(exp(lme4::fixef(glmer_fit)))
+    tictoc::toc()
+    tictoc::tic("rpcm")
+    rpcm_result <- unname(rpcm(testdata)$coefficients)
+    tictoc::toc()
 
     expect_equal(
-        unname(exp(lme4::fixef(glmer_fit))),
-        fit2_item_estimates$coefficients,
-        tolerance = 0.00001
+        glmer_result,
+        rpcm_result,
+        tolerance = 0.01
     )
 })

@@ -1,6 +1,4 @@
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # rpcm.tree
 
 This package provides a function to detect differential item functioning

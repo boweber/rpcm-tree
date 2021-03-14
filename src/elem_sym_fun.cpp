@@ -58,7 +58,7 @@ NumericMatrix poly_idx_cpp(int p, int M)
   return out;
 }
 
-// [[Rcpp::export]]
+// FIXME: Currently not working
 List rpcm_esf_c(int rawScore,
                 NumericVector itemDifficulties,
                 NumericVector itemTimeLimits,
@@ -68,14 +68,15 @@ List rpcm_esf_c(int rawScore,
 
   double first_order_result = 0;
   NumericMatrix possibilities = poly_idx_cpp(rawScore, itemTimeLimits.length());
-  NumericVector itemParameters = itemDifficulties * itemTimeLimits;
+  NumericVector itemParameters = itemDifficulties + itemTimeLimits;
   for (int p_index = 0; p_index < possibilities.nrow(); p_index++)
   {
     double p_col_result = 0;
     for (int p_col_index = 0; p_col_index < possibilities.ncol(); p_col_index++)
     {
       int y = possibilities(p_index, p_col_index);
-      p_col_result = p_col_result + (y * log(itemParameters[p_col_index]) - log(factorial(y)));
+      // log(exp(itemParameters[p_col_index])) == itemParameters[p_col_index]
+      p_col_result = p_col_result + (y * itemParameters[p_col_index] - log(factorial(y)));
     }
     first_order_result = first_order_result + exp(p_col_result);
   }
