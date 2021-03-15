@@ -17,3 +17,7 @@ rpcm_esf_c <- function(rawScore, itemDifficulties, itemTimeLimits, order) {
     .Call('_rpcm_tree_rpcm_esf_c', PACKAGE = 'rpcm.tree', rawScore, itemDifficulties, itemTimeLimits, order)
 }
 
+rpcm_log_likelihood_c <- function(itemDifficulties, colSums, rowSums, itemTimeLimits, factorialComponent) {
+    .Call('_rpcm_tree_rpcm_log_likelihood_c', PACKAGE = 'rpcm.tree', itemDifficulties, colSums, rowSums, itemTimeLimits, factorialComponent)
+}
+

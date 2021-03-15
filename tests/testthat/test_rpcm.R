@@ -47,7 +47,6 @@ test_that("rpcm test", {
     testdata_long <- testdata %>%
         mutate(id = 1:nrow(testdata)) %>%
         gather(-id, key = "item", value = "count")
-
     tictoc::tic("glmer")
     glmer_fit <- lme4::glmer(
         count ~ 0 + item + (1 | id),

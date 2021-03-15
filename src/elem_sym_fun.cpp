@@ -13,8 +13,8 @@ NumericMatrix na_matrix(int n, int l)
 
 long factorial(int n)
 {
-  int i, result = 1;
-  for (i = 1; i <= n; i++)
+  int result = 1;
+  for (int i = 1; i <= n; i++)
   {
     result = result * i;
   }
@@ -24,7 +24,8 @@ long factorial(int n)
 double applyESFComputation(NumericMatrix matrix,
                            int factorIndex,
                            bool shouldUseIndex,
-                           NumericVector itemParameters)
+                           NumericVector itemDifficulties,
+                           NumericVector itemTimeLimits)
 {
   double result = 0;
   for (int row_index = 0; row_index < matrix.nrow(); row_index++)
@@ -33,14 +34,15 @@ double applyESFComputation(NumericMatrix matrix,
     for (int col_index = 0; col_index < matrix.ncol(); col_index++)
     {
       int y = matrix(row_index, col_index);
-      double itemParameter = itemParameters[col_index];
+      double itemParameter = itemDifficulties[col_index] + itemTimeLimits[col_index];
       // exp(log(itemParameters[col_index])) = itemParameters[col_index]
       row_result = row_result + (y * itemParameter - log(factorial(y)));
     }
     row_result = exp(row_result);
     if (shouldUseIndex)
     {
-      row_result = row_result * matrix(row_index, factorIndex);
+      int matrixValue = matrix(row_index, factorIndex);
+      row_result = row_result * matrixValue;
     }
 
     result = result + row_result;
@@ -90,9 +92,8 @@ List rpcm_esf_c(int rawScore,
                 int order)
 {
   NumericMatrix possibilities = poly_idx_cpp(rawScore, itemTimeLimits.length());
-  NumericVector itemParameters = itemDifficulties + itemTimeLimits;
-  // a vector containing just one value
-  NumericVector first_order = {applyESFComputation(possibilities, 1, false, itemParameters)};
+  // the 1 is just a dummy
+  NumericVector first_order = {applyESFComputation(possibilities, 1, false, itemDifficulties, itemTimeLimits)};
 
   if (order == 0)
   {
@@ -104,10 +105,35 @@ List rpcm_esf_c(int rawScore,
     NumericVector derivatives(itemDifficulties.length());
     for (int item_index = 0; item_index < itemDifficulties.length(); item_index++)
     {
-      derivatives[item_index] = applyESFComputation(possibilities, item_index, true, itemParameters);
+      derivatives[item_index] = applyESFComputation(possibilities, item_index, true, itemDifficulties, itemTimeLimits);
     }
 
     List result = List::create(first_order, derivatives);
     return result;
   }
+}
+
+// [[Rcpp::export]]
+double rpcm_log_likelihood_c(NumericVector itemDifficulties,
+                             NumericVector colSums,
+                             NumericVector rowSums,
+                             NumericVector itemTimeLimits,
+                             double factorialComponent)
+{
+  double esfResult = 0;
+  for (int rowSumIndex = 0; rowSumIndex < rowSums.length(); rowSumIndex++)
+  {
+    List esfList = rpcm_esf_c(rowSums[rowSumIndex], itemDifficulties, itemTimeLimits, 0);
+    NumericVector esfVector = esfList[0];
+    double esf = esfVector[0];
+    esfResult += log(esf);
+  }
+  double colSumResult = 0;
+  for (int colSumIndex = 0; colSumIndex < colSums.length(); colSumIndex++)
+  {
+    double itemParameter = itemDifficulties[colSumIndex] + itemTimeLimits[colSumIndex];
+    colSumResult += itemParameter * colSums[colSumIndex];
+  }
+
+  return colSumResult - factorialComponent - esfResult;
 }

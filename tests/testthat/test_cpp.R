@@ -1,5 +1,6 @@
 load_all()
 
+
 test_that("raw score possibilities", {
     raw_score <- 7
     number_of_items <- 6
@@ -14,7 +15,6 @@ test_that("raw score possibilities", {
 })
 
 test_that("rpcm esf", {
-    skip("rpcm esf c version not yet functional")
     y <- matrix(c(
         3, 0, 1,
         2, 1, 0,
@@ -30,15 +30,18 @@ test_that("rpcm esf", {
         items_raw_scores[1],
         apply(y, 2, mean),
         item_time_limits,
-        0,
-        engine = "C"
+        1,
+        engine = "R",
+        possibility_engine = "C"
     )
 
-    esf_c <- rpcm_esf_c(
+    esf_c <- rpcm_esf(
         items_raw_scores[1],
         apply(y, 2, mean),
         item_time_limits,
-        0
+        1,
+        engine = "C"
     )
     expect_equal(esf_r[[1]], esf_c[[1]])
+    expect_equal(esf_r[[2]], esf_c[[2]])
 })
