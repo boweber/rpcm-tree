@@ -3,9 +3,6 @@ raw_score_possibilities <- function(raw_score,
                                     engine = c("R", "C")) {
     engine <- match.arg(engine)
     if (engine == "R") {
-
-        ## MARK: R
-
         number_of_possibilities <- choose(
             raw_score + number_of_items,
             number_of_items
@@ -31,14 +28,10 @@ raw_score_possibilities <- function(raw_score,
                 possibility_index <- possibility_index + 1
             }
         }
-        possibilities <- possibilities[complete.cases(possibilities), ]
-        return(possibilities)
     } else {
-
-        ## MARK: C
-
         possibilities <- poly_idx_cpp(raw_score, number_of_items)
-        possibilities <- possibilities[complete.cases(possibilities), ]
-        return(possibilities)
     }
+
+    possibilities <- possibilities[complete.cases(possibilities), ]
+    return(possibilities)
 }

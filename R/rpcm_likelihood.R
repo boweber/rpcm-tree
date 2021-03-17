@@ -4,15 +4,31 @@ rpcm_log_likelihood <- function(difficulty,
                                 item_time_limits,
                                 engine = c("R", "C"),
                                 factorial_like_component) {
-
-    ## Compute the conditional log likelihood
-
-    if (engine == "C") {
-        cll <- rpcm_log_likelihood_c(difficulty, col_sums, row_sums, item_time_limits, factorial_like_component)
-        if (is.na(cll) | !is.finite(cll)) {
-            cll <- -.Machine$double.xmax
+    if (is_R6Class(row_sums, "RawScoreCollection")) {
+        if (is_R6Class(item_time_limits, "TimeLimitCollection")) {
+            cll <- sum(
+                item_time_limits$summed_item_parameters(difficulty) * col_sums
+            ) -
+                factorial_like_component -
+                row_sums$compute_likelihood_component(
+                    difficulty,
+                    item_time_limits
+                )
+        } else {
+            stop(paste(
+                toString(item_time_limits),
+                "is invalid as time limits",
+                "when row sums are of class RawScoreCollection."
+            ))
         }
-        return(-cll)
+    } else if (engine == "C") {
+        cll <- rpcm_log_likelihood_c(
+            difficulty,
+            col_sums,
+            row_sums,
+            item_time_limits,
+            factorial_like_component
+        )
     } else {
         ## log(exp(difficulty + item_time_limits)) = difficulty + item_time_limits
         cll <- sum((difficulty + item_time_limits) * col_sums) -
@@ -30,10 +46,9 @@ rpcm_log_likelihood <- function(difficulty,
                     )
                 })
             )
-
-        if (is.na(cll) | !is.finite(cll)) {
-            cll <- -.Machine$double.xmax
-        }
-        return(-cll)
     }
+    if (is.na(cll) | !is.finite(cll)) {
+        cll <- -.Machine$double.xmax
+    }
+    return(-cll)
 }

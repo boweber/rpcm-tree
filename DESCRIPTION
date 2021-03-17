@@ -18,7 +18,8 @@ Suggests:
     testthat,
     tidyr,
     lme4,
-    dplyr
+    dplyr,
+    R6
 Imports:
     partykit,
     Rcpp

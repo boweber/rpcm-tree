@@ -46,13 +46,18 @@ rpcm <- function(y,
             sep = ""
         )
     }
+
+    time_collection <- time_limit_collection$new(item_time_limits)
+    ## item_time_limits <- log(item_time_limits)
+    score_collection <- raw_score_collection$new(rowSums(y), number_of_items)
+
     opt <- optim(
         par = apply(y, 2, mean),
         fn = rpcm_log_likelihood,
         gr = rpcm_analytical_gradient,
         col_sums = colSums(y),
-        row_sums = rowSums(y),
-        item_time_limits = log(item_time_limits),
+        row_sums = score_collection,
+        item_time_limits = time_collection,
         engine = "C",
         factorial_like_component = sum(lfactorial(y)),
         method = "BFGS",

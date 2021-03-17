@@ -85,6 +85,36 @@ NumericMatrix poly_idx_cpp(int p, int M)
   return out;
 }
 
+int maxElement(IntegerVector rowSums)
+{
+  int currentMax = 0;
+  for (IntegerVector::iterator elementPointer = rowSums.begin(); elementPointer != rowSums.end(); ++elementPointer)
+  {
+    // *element: Represents the value of the element pointed by elementPointer.
+    if (*elementPointer > currentMax)
+    {
+      currentMax = *elementPointer;
+    }
+  }
+  return currentMax;
+}
+
+double esf(IntegerVector rowSums, NumericVector itemDifficulties, NumericVector itemTimeLimits, int order)
+{
+  int numberOfItems = itemDifficulties.length();
+  NumericVector currentOrderRow(numberOfItems);
+  int maxRowSum = maxElement(rowSums);
+  int maxOrderIndex = pow((maxRowSum + 1), numberOfItems);
+  for (int orderIndex = 0; orderIndex < (maxOrderIndex + 1); orderIndex++)
+  {
+    for (int itemIndex = 0; itemIndex < numberOfItems; itemIndex++)
+    {
+    }
+  }
+
+  return 1;
+}
+
 // [[Rcpp::export]]
 List rpcm_esf_c(int rawScore,
                 NumericVector itemDifficulties,
