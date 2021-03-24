@@ -17,40 +17,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rpcm_esf_c
-List rpcm_esf_c(int rawScore, NumericVector itemDifficulties, NumericVector itemTimeLimits, int order);
-RcppExport SEXP _rpcm_tree_rpcm_esf_c(SEXP rawScoreSEXP, SEXP itemDifficultiesSEXP, SEXP itemTimeLimitsSEXP, SEXP orderSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type rawScore(rawScoreSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type itemDifficulties(itemDifficultiesSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type itemTimeLimits(itemTimeLimitsSEXP);
-    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
-    rcpp_result_gen = Rcpp::wrap(rpcm_esf_c(rawScore, itemDifficulties, itemTimeLimits, order));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rpcm_log_likelihood_c
-double rpcm_log_likelihood_c(NumericVector itemDifficulties, NumericVector colSums, NumericVector rowSums, NumericVector itemTimeLimits, double factorialComponent);
-RcppExport SEXP _rpcm_tree_rpcm_log_likelihood_c(SEXP itemDifficultiesSEXP, SEXP colSumsSEXP, SEXP rowSumsSEXP, SEXP itemTimeLimitsSEXP, SEXP factorialComponentSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type itemDifficulties(itemDifficultiesSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type colSums(colSumsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type rowSums(rowSumsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type itemTimeLimits(itemTimeLimitsSEXP);
-    Rcpp::traits::input_parameter< double >::type factorialComponent(factorialComponentSEXP);
-    rcpp_result_gen = Rcpp::wrap(rpcm_log_likelihood_c(itemDifficulties, colSums, rowSums, itemTimeLimits, factorialComponent));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rpcm_tree_poly_idx_cpp", (DL_FUNC) &_rpcm_tree_poly_idx_cpp, 2},
-    {"_rpcm_tree_rpcm_esf_c", (DL_FUNC) &_rpcm_tree_rpcm_esf_c, 4},
-    {"_rpcm_tree_rpcm_log_likelihood_c", (DL_FUNC) &_rpcm_tree_rpcm_log_likelihood_c, 5},
     {NULL, NULL, 0}
 };
 

@@ -1,5 +1,4 @@
 library(tidyr)
-library(lme4)
 library(dplyr)
 
 glmer_fit <- function(y,
@@ -18,14 +17,15 @@ glmer_fit <- function(y,
         mutate(id = seq_len(nrow(y))) %>%
         gather(-id, key = "item", value = "count")
 
-    glmer_result <- glmer(
+    glmer_result <- lme4::glmer(
         count ~ 0 + item + (1 | id),
         data = y_data_frame,
+        offset = if (is.null(offset)) NULL else log(offset),
         family = "poisson"
     )
 
     rval <- list(
-        coefficients = exp(fixef(glmer_result)),
+        coefficients = exp(lme4::fixef(glmer_result)),
         objfun = summary(glmer_result)[[6]],
         estfun = if (estfun) glmer_result@optinfo$derivs$gradient else NULL,
         object = if (object) glmer_result else NULL

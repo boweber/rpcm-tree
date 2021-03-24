@@ -1,6 +1,4 @@
-library(R6)
-
-raw_score_collection <- R6Class("RawScoreCollection",
+raw_score_collection <- R6::R6Class("RawScoreCollection",
     private = list(
         ## all unique row sums saved as a raw score
         raw_scores = NA,
@@ -32,22 +30,22 @@ raw_score_collection <- R6Class("RawScoreCollection",
     public = list(
         initialize = function(row_sums, number_of_items) {
             raw_scores <- c()
-            raw_score_meta_data <- data.frame(RowSum = c(), Count = c())
+            meta_data <- data.frame(RowSum = c(), Count = c())
             for (row_sum in row_sums) {
                 did_find_raw_score <- FALSE
                 ## Ensures that each raw score is unique
                 for (row_index in nrow(raw_scores)) {
-                    if (nrow(raw_score_meta_data) == 0) {
+                    if (nrow(meta_data) == 0) {
                         ## raw scores is empty
                         ## append new element
                         break
                     }
-                    if (raw_score_meta_data[row_index, 1] == row_sum) {
+                    if (meta_data[row_index, 1] == row_sum) {
                         ## the current row sum is already in the
                         ## raw_scores vector
                         ## -> increase the occurrence count by one
                         did_find_raw_score <- TRUE
-                        raw_score_meta_data[row_index, 2] <- raw_score_meta_data[row_index, 2] + 1
+                        meta_data[row_index, 2] <- meta_data[row_index, 2] + 1
                         break
                     }
                 }
@@ -61,22 +59,22 @@ raw_score_collection <- R6Class("RawScoreCollection",
 
                     ## updates the meta data
                     ## regarding the occurrence count
-                    raw_score_meta_data <- rbind(
-                        raw_score_meta_data,
+                    meta_data <- rbind(
+                        meta_data,
                         data.frame(row_sum, 1)
                     )
                 }
             }
             private$raw_scores <- raw_scores
-            private$details <- raw_score_meta_data
+            private$details <- meta_data
         },
         compute_likelihood_component = function(item_difficulties,
-                                                time_limit_collection) {
+                                                time_limits) {
             result <- 0
             for (raw_score in private$raw_scores) {
                 esf <- raw_score$esf(
                     item_difficulties,
-                    time_limit_collection,
+                    time_limits,
                     0
                 )[[1]]
                 result <- result +
@@ -86,12 +84,12 @@ raw_score_collection <- R6Class("RawScoreCollection",
             return(result)
         },
         compute_gradient_component = function(item_difficulties,
-                                              time_limit_collection) {
+                                              time_limits) {
             esf_result <- rep(0, length(item_difficulties))
             for (raw_score in private$raw_scores) {
                 esf <- raw_score$esf(
                     item_difficulties,
-                    time_limit_collection,
+                    time_limits,
                     1
                 )
 

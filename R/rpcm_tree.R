@@ -1,3 +1,4 @@
+library(partykit)
 
 ## Almost identical compared to the functions rstree() and raschtree()
 ## provided by the psychotree package.

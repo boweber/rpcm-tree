@@ -15,11 +15,10 @@ rpcm_fit <- function(y,
 
     rval <- rpcm(
         y,
+        item_time_limits = offset,
         ...,
         hessian = object | estfun
     )
-
-    ## FIXME: estfun.rpcm is not yet implemented
 
     rval <- list(
         coefficients = rval$coefficients,
@@ -28,4 +27,8 @@ rpcm_fit <- function(y,
         object = if (object) rval else NULL
     )
     return(rval)
+}
+
+estfun.rpcm <- function(x, ...) {
+    colSums(x$data) - x$elementary_symmetric_functions
 }

@@ -11,10 +11,7 @@ rpcm <- function(y,
     number_of_items <- ncol(y)
 
     ### verifies that every entry is a positive integer
-    if (any(!sapply(
-        y,
-        function(value) is.numeric(value) && (value %% 1 == 0) && (value >= 0)
-    ))) {
+    if (any(!sapply(y, is_count_data))) {
         stop("The rasch poisson count model does not support non positive integer values.")
     }
 
@@ -33,7 +30,7 @@ rpcm <- function(y,
         if (length(item_time_limits) != number_of_items) {
             stop("The provided item time limits are not compatible with the items in y.")
         }
-        if (any(number_of_items <= 0)) {
+        if (any(item_time_limits <= 0)) {
             stop("The provided item time limits must be higher that 0.")
         }
     }
@@ -46,9 +43,8 @@ rpcm <- function(y,
             sep = ""
         )
     }
-
-    time_collection <- time_limit_collection$new(item_time_limits)
-    ## item_time_limits <- log(item_time_limits)
+    ## Keeps the scores and their possibilities in memory.
+    ## This ensures that the possibilities are only computed once
     score_collection <- raw_score_collection$new(rowSums(y), number_of_items)
 
     opt <- optim(
@@ -57,8 +53,7 @@ rpcm <- function(y,
         gr = rpcm_analytical_gradient,
         col_sums = colSums(y),
         row_sums = score_collection,
-        item_time_limits = time_collection,
-        engine = "C",
+        item_time_limits = log(item_time_limits),
         factorial_like_component = sum(lfactorial(y)),
         method = "BFGS",
         hessian = hessian,
@@ -70,6 +65,11 @@ rpcm <- function(y,
     )
     best_parameters <- opt$par
     names(best_parameters) <- colnames(y)
+
+    esf <- score_collection$compute_gradient_component(
+        best_parameters,
+        log(item_time_limits)
+    )
 
     hessian_estimation <- opt$hessian
     if (hessian) {
@@ -85,7 +85,7 @@ rpcm <- function(y,
         loglik = -opt$value,
         df = number_of_items - 1,
         data = y,
-        elementary_symmetric_functions = NULL,
+        elementary_symmetric_functions = esf,
         code = opt$convergence,
         iterations = tail(na.omit(opt$counts), 1L),
         reltol = reltol
