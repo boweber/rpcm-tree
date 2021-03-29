@@ -33,7 +33,7 @@ glmer_fit <- function(y,
     rval <- list(
         coefficients = exp(lme4::fixef(glmer_result)),
         objfun = summary(glmer_result)[[6]],
-        estfun = if (estfun) glmer_result@optinfo$derivs$gradient else NULL,
+        estfun = if (estfun) fitted(glmer_result) else NULL, ## previously: glmer_result@optinfo$derivs$gradient
         object = if (object) glmer_result else NULL
     )
     return(rval)
