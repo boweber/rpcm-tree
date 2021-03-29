@@ -13,6 +13,7 @@ library(partykit)
 #' By default the rpcm_fit function is used.
 #' @param ... Arguments passed to the underlying functions.
 #' @return A rasch poisson count model tree based on the input data.
+#' @export
 rpcm_tree <- function(formula,
                       data,
                       reltol = 1e-10,

@@ -1,6 +1,12 @@
 library(tidyr)
 library(dplyr)
 
+
+#' A wrapper function of the glmer function.
+#'
+#' @param y A matrix containing response values of
+#' each participant for each item.
+#' @export
 glmer_fit <- function(y,
                       x = NULL,
                       start = NULL,
@@ -23,7 +29,7 @@ glmer_fit <- function(y,
         offset = if (is.null(offset)) NULL else log(offset),
         family = "poisson"
     )
-
+    ## estfun: empirical estimating function (score/gradient contributions)
     rval <- list(
         coefficients = exp(lme4::fixef(glmer_result)),
         objfun = summary(glmer_result)[[6]],

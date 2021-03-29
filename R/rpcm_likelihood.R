@@ -14,5 +14,8 @@ rpcm_log_likelihood <- function(difficulty,
     if (is.na(cll) | !is.finite(cll)) {
         cll <- -.Machine$double.xmax
     }
+    if (is.nan(cll)) {
+        stop(paste("Invalid difficulty value in likelihood", toString(difficulty)))
+    }
     return(-cll)
 }

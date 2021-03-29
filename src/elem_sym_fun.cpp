@@ -17,7 +17,7 @@ NumericMatrix poly_idx_cpp(int p, int M)
 {
   double P = R::choose(double(p + M) * 1.0, double(M * 1.0));
   NumericMatrix out(P, M);
-  // std::fill(out.begin(), out.end(), NumericVector::get_na());
+  std::fill(out.begin(), out.end(), NumericVector::get_na());
   NumericVector tA(M);
   int l = 0;
   int pmax = pow((p + 1), M);

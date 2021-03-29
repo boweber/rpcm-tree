@@ -14,10 +14,8 @@ raw_score <- R6::R6Class("RawScore",
                     private$score,
                     private$number_of_items
                 )
-                ## removes rows where all values are 0
-                private$possibilities <- possibilities[
-                    apply(possibilities[, -1], 1, function(x) !all(x == 0)),
-                ]
+                ## removes rows where all values are NA
+                private$possibilities <- possibilities[complete.cases(possibilities), ]
             }
             return(private$possibilities)
         },

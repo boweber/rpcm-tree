@@ -93,9 +93,25 @@ raw_score_collection <- R6::R6Class("RawScoreCollection",
                     1
                 )
 
+
                 esf_result <- esf_result +
                     ((1 / esf[[1]]) * esf[[2]]) *
                         private$get_raw_score_count(raw_score)
+                if (any(is.nan(esf_result))) {
+                    stop(paste(
+                        "Invalid difficulty value in compute_gradient_component.",
+                        "item difficulities:",
+                        toString(item_difficulties),
+                        "esf 1:",
+                        toString(esf[[1]]),
+                        "esf 2:",
+                        toString(esf[[2]]),
+                        "raw score count:",
+                        toString(private$get_raw_score_count(raw_score)),
+                        "esf result:",
+                        toString(esf_result)
+                    ))
+                }
             }
 
             return(esf_result)

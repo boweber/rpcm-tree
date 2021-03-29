@@ -10,5 +10,8 @@ rpcm_analytical_gradient <- function(difficulty,
         difficulty,
         item_time_limits
     )
+    if (any(is.nan(esf_result))) {
+        stop(paste("Invalid difficulty value in gradient", toString(difficulty), "esf:", toString(esf_result)))
+    }
     return(-(col_sums - esf_result))
 }

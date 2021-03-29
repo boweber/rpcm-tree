@@ -39,9 +39,7 @@ prev_rpcm_esf <- function(raw_score,
         raw_score,
         length(item_difficulties)
     )
-    possibilities <- possibilities[
-        apply(possibilities[, -1], 1, function(x) !all(x == 0)),
-    ]
+    possibilities <- possibilities[complete.cases(possibilities), ]
     esf <- vector(mode = "list", length = (order + 1))
 
     summation <- function(item_index) {

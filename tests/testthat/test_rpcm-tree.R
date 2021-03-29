@@ -61,9 +61,7 @@ test_that("RawScore - esf component", {
             test_row_sum,
             length(item_difficulties)
         )
-        possibilities <- possibilities[
-            apply(possibilities[, -1], 1, function(x) !all(x == 0)),
-        ]
+        possibilities <- possibilities[complete.cases(possibilities), ]
         esf <- vector(mode = "list", length = (order + 1))
 
         summation <- function(item_index) {
@@ -128,9 +126,7 @@ test_that("poly_idx_cpp - raw score possibilities", {
         raw_score,
         number_of_items
     )
-    possibilities <- possibilities[
-        apply(possibilities[, -1], 1, function(x) !all(x == 0)),
-    ]
+    possibilities <- possibilities[complete.cases(possibilities), ]
 
     expect_true(all(rowSums(possibilities) == raw_score))
 })

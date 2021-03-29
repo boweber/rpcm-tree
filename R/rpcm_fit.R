@@ -1,7 +1,11 @@
 
 ## Almost identical compared to the functions raschfit() and rsmfit()
 ## provided by the psychotree package.
-
+#' A wrapper function of the rpcm function.
+#'
+#' @param y A matrix containing response values of
+#' each participant for each item.
+#' @export
 rpcm_fit <- function(y,
                      x = NULL,
                      start = NULL,

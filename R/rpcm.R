@@ -73,7 +73,7 @@ rpcm <- function(y,
 
     hessian_estimation <- opt$hessian
     if (hessian) {
-        ## hessian_estimation <- chol2inv(chol(hessian_estimation))
+        hessian_estimation <- chol2inv(chol(hessian_estimation))
     }
     rownames(hessian_estimation) <-
         colnames(hessian_estimation) <-
