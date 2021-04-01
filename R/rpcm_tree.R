@@ -1,4 +1,3 @@
-library(partykit)
 
 ## Almost identical compared to the functions rstree() and raschtree()
 ## provided by the psychotree package.
@@ -40,7 +39,7 @@ rpcm_tree <- function(formula,
         }
     }
     if ("..." %in% names(mob)) mob[["..."]] <- NULL
-    mob[[1L]] <- as.name("mob")
+    mob[[1L]] <- as.name("partykit::mob")
     rval <- eval(mob, parent.frame())
 
     ## extend class and keep original call
