@@ -1,4 +1,4 @@
-Package: rpcm.tree
+Package: rpcmtree
 Title: Detecting differential item functioning in a rasch poisson count model
 Version: 0.0.0.9000
 Authors@R: 
@@ -16,12 +16,13 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Suggests: 
     testthat,
+Imports:
+    partykit,
     tidyr,
     lme4,
     dplyr,
-    R6
-Imports:
-    partykit,
+    R6,
+    stats,
     Rcpp
 LinkingTo: 
     Rcpp

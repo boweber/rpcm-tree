@@ -7,7 +7,7 @@
 #' The mypackage functions ...
 #'
 #' @docType package
-#' @name rpcm.tree
-#' @useDynLib rpcm.tree
+#' @name rpcmtree
+#' @useDynLib rpcmtree
 NULL
 # > NULL

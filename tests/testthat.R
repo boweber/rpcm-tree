@@ -1,4 +1,4 @@
 library(testthat)
-library(rpcm.tree)
+library(rpcmtree)
 
-test_check("rpcm.tree")
+test_check("rpcmtree")

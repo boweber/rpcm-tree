@@ -10,8 +10,6 @@ using namespace R;
 //' @param p The esf order of the elementary symmetric function.
 //' @param M The number of items
 //' @return Every possible score combination as a matrix
-//' @examples
-//' poly_idx_cpp(5, 7)
 // [[Rcpp::export]]
 NumericMatrix poly_idx_cpp(int p, int M)
 {

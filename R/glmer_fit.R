@@ -1,6 +1,3 @@
-library(tidyr)
-library(dplyr)
-
 
 #' A wrapper function of the glmer function.
 #'
@@ -19,16 +16,22 @@ glmer_fit <- function(y,
     if (!is.null(offset)) warning("offset not used")
 
     y_data_frame <- as.data.frame(y)
-    y_data_frame <- y_data_frame %>%
-        mutate(id = seq_len(nrow(y))) %>%
-        gather(-id, key = "item", value = "count")
+    y_data_frame <- tidyr::gather(
+        dplyr::mutate(
+            y_data_frame,
+            id = seq_len(nrow(y))
+        ),
+        -id,
+        key = "item",
+        value = "count"
+    )
 
     glmer_result <- lme4::glmer(
         count ~ 0 + item + (1 | id),
         data = y_data_frame,
         offset = if (is.null(offset)) NULL else log(offset),
         family = "poisson",
-        control = glmerControl(
+        control = lme4::glmerControl(
             optimizer = "bobyqa",
             optCtrl = list(maxfun = 2e5)
         )
@@ -37,7 +40,7 @@ glmer_fit <- function(y,
     rval <- list(
         coefficients = exp(lme4::fixef(glmer_result)),
         objfun = summary(glmer_result)[[6]],
-        estfun = if (estfun) fitted(glmer_result) else NULL, ## previously: glmer_result@optinfo$derivs$gradient
+        estfun = if (estfun) stats::fitted(glmer_result) else NULL, ## previously: glmer_result@optinfo$derivs$gradient
         object = if (object) glmer_result else NULL
     )
     return(rval)

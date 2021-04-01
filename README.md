@@ -1,5 +1,5 @@
 
-# rpcm.tree
+# rpcm-tree
 
 This package provides a function to detect differential item functioning
 in a rasch poisson count model.
@@ -10,7 +10,7 @@ function can be used to compute the rpcm\_tree.
 
 ## Installation
 
-You can install the released version of rpcm.tree with:
+You can install the released version of rpcm-tree with:
 
 ``` r
 if (!require("devtools")) install.packages("devtools")
@@ -23,5 +23,5 @@ devtools::install_github("boweber/rpcm-tree")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library("rpcm.tree")
+library("rpcmtree")
 ```

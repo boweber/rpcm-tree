@@ -19,6 +19,3 @@ Every possible score combination as a matrix
 Generates a matrix containing every possible score combination
 where each row sum is equal to the provided esf order.
 }
-\examples{
-poly_idx_cpp(5, 7)
-}

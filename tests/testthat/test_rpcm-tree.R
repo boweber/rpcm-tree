@@ -2,6 +2,7 @@ library(tidyr)
 library(dplyr)
 load_all()
 
+
 test_that("RawScore - initilizer", {
     row_sum <- 6
     number_of_items <- 4

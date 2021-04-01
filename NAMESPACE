@@ -3,4 +3,4 @@
 export(glmer_fit)
 export(rpcm_fit)
 export(rpcm_tree)
-useDynLib(rpcm.tree)
+useDynLib(rpcmtree)

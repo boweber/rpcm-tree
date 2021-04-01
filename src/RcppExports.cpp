@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // poly_idx_cpp
 NumericMatrix poly_idx_cpp(int p, int M);
-RcppExport SEXP _rpcm_tree_poly_idx_cpp(SEXP pSEXP, SEXP MSEXP) {
+RcppExport SEXP _rpcmtree_poly_idx_cpp(SEXP pSEXP, SEXP MSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,11 +19,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rpcm_tree_poly_idx_cpp", (DL_FUNC) &_rpcm_tree_poly_idx_cpp, 2},
+    {"_rpcmtree_poly_idx_cpp", (DL_FUNC) &_rpcmtree_poly_idx_cpp, 2},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_rpcm_tree(DllInfo *dll) {
+RcppExport void R_init_rpcmtree(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

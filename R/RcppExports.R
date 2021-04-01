@@ -7,9 +7,7 @@
 #' @param p The esf order of the elementary symmetric function.
 #' @param M The number of items
 #' @return Every possible score combination as a matrix
-#' @examples
-#' poly_idx_cpp(5, 7)
 poly_idx_cpp <- function(p, M) {
-    .Call('_rpcm_tree_poly_idx_cpp', PACKAGE = 'rpcm.tree', p, M)
+    .Call('_rpcmtree_poly_idx_cpp', PACKAGE = 'rpcmtree', p, M)
 }
 

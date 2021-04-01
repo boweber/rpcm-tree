@@ -47,7 +47,7 @@ rpcm <- function(y,
     ## This ensures that the possibilities are only computed once
     score_collection <- raw_score_collection$new(rowSums(y), number_of_items)
 
-    opt <- optim(
+    opt <- stats::optim(
         par = apply(y, 2, mean),
         fn = rpcm_log_likelihood,
         gr = rpcm_analytical_gradient,
@@ -87,7 +87,7 @@ rpcm <- function(y,
         data = y,
         elementary_symmetric_functions = esf,
         code = opt$convergence,
-        iterations = tail(na.omit(opt$counts), 1L),
+        iterations = utils::tail(stats::na.omit(opt$counts), 1L),
         reltol = reltol
     )
     class(rval) <- "rasch_poisson_count_model"
