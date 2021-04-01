@@ -39,7 +39,7 @@ rpcm_tree <- function(formula,
         }
     }
     if ("..." %in% names(mob)) mob[["..."]] <- NULL
-    mob[[1L]] <- as.name("partykit::mob")
+    mob[[1L]] <- as.name("mob")
     rval <- eval(mob, parent.frame())
 
     ## extend class and keep original call
