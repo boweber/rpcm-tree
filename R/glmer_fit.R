@@ -27,7 +27,11 @@ glmer_fit <- function(y,
         count ~ 0 + item + (1 | id),
         data = y_data_frame,
         offset = if (is.null(offset)) NULL else log(offset),
-        family = "poisson"
+        family = "poisson",
+        control = glmerControl(
+            optimizer = "bobyqa",
+            optCtrl = list(maxfun = 2e5)
+        )
     )
     ## estfun: empirical estimating function (score/gradient contributions)
     rval <- list(
