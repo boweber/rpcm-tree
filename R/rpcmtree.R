@@ -9,5 +9,6 @@
 #' @docType package
 #' @name rpcmtree
 #' @useDynLib rpcmtree
+#' @import partykit tidyr lme4 dplyr R6 stats Rcpp
 NULL
 # > NULL
