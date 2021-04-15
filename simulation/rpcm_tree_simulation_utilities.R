@@ -26,8 +26,8 @@ generate_abilities <- function(ability_difference,
 
 generate_item_parameters <- function(item_3_delta = 0) {
     c(
-        2.1, 2.1, 1.1 + item_3_delta, 1.5, 1.7, 2.0, 2.8, 3.1, 2.4, 2.0,
-        2.1, 3.0, 1.7, 2.5, 3.0, 1.4, 2.9, 1.8, 1.5, 1.1
+        1.4, 0.7, 1.2 + item_3_delta, 0.6, 0.5, 1.5, 0.5, 1.2, 1.2, 0.9,
+        0.5, 0.5, 1.2, 1.4, 1.1, 0.5, 1.4, 1.2, 1.5, 1.5
     )
 }
 
@@ -49,6 +49,7 @@ generate_test_data <- function(focal_group_deltas,
         id = 1:number_of_people
     )
 
+
     observations <- matrix(
         NA,
         nrow = number_of_people,
@@ -56,6 +57,7 @@ generate_test_data <- function(focal_group_deltas,
     )
 
     if (!should_be_binary) {
+        test_data$covariate <- test_data$covariate / 100 ## numerical reasons
         numeric_cutpoint <- quantile(test_data$covariate, probs = quantile_prob)
     }
 
@@ -91,7 +93,7 @@ single_case_simulation <- function(with_dif = TRUE,
                                    sample_size = 300,
                                    fitting_function,
                                    alpha_niveau = 0.05,
-                                   item_3_delta = 1.5,
+                                   item_3_delta = 1,
                                    ability_difference = 0,
                                    numeric_cutpoint = 0.5) {
     focal_group_item_param <- generate_item_parameters(
@@ -115,7 +117,7 @@ single_case_simulation <- function(with_dif = TRUE,
     transformed_test_data <- transform_to_glmer_data(test_data)
 
     group_specific_intercept <- glmer(
-        observation ~ 0 + covariate + item + (1 | id),
+        observation ~ 0 + item + covariate + (1 | id),
         data = transformed_test_data,
         family = "poisson",
         control = glmerControl(
@@ -125,7 +127,7 @@ single_case_simulation <- function(with_dif = TRUE,
     )
 
     group_by_item_intercept <- glmer(
-        observation ~ 0 + covariate + item + (1 | id) + item * covariate,
+        observation ~ 0 + item + covariate + (1 | id) + item * covariate,
         data = transformed_test_data,
         family = "poisson",
         control = glmerControl(
