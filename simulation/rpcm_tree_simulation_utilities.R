@@ -6,9 +6,13 @@ generate_abilities <- function(ability_difference,
         stop("Invalid number of people.")
     }
     if (ability_difference == 0) {
+        ## For simulation studie I:
+        ## - both group participants have the same abilities
         abilities <- rnorm(number_of_people / 2, mean = 0, sd = 1)
         return(data.frame(reference = abilities, focal = abilities))
     } else {
+        ## For simulation studie II
+        ## - the group participants have different abilities
         return(data.frame(
             reference = rnorm(
                 number_of_people / 2,
@@ -46,9 +50,9 @@ generate_test_data <- function(focal_group_deltas,
             number_of_people,
             replace = TRUE
         ),
+        ## An idenitifier. Required to compute the ARI
         id = 1:number_of_people
     )
-
 
     observations <- matrix(
         NA,
@@ -58,6 +62,7 @@ generate_test_data <- function(focal_group_deltas,
 
     if (!should_be_binary) {
         test_data$covariate <- test_data$covariate / 100 ## numerical reasons
+        ## the desired cutpoint to create focal and reference group
         numeric_cutpoint <- quantile(test_data$covariate, probs = quantile_prob)
     }
 
@@ -66,6 +71,7 @@ generate_test_data <- function(focal_group_deltas,
         ifelse(should_be_binary, 1, numeric_cutpoint)
 
     if (should_be_binary) {
+        ## factors the covariate in binary case
         test_data$covariate <- factor(
             test_data$covariate,
             levels = c(0, 1),
@@ -74,11 +80,13 @@ generate_test_data <- function(focal_group_deltas,
     }
 
     for (item_index in seq_len(length(focal_group_deltas))) {
+        ## Creates lambdas based on the splitting rule
         lambdas <- ifelse(
             splitting_rule,
             exp(abilities$reference + reference_group_deltas[item_index]),
             exp(abilities$focal + focal_group_deltas[item_index])
         )
+        ## Append the random generated observations
         observations[, item_index] <- rpois(number_of_people, lambdas)
     }
     colnames(observations) <- paste("item", seq_len(length(focal_group_deltas)))
@@ -96,10 +104,13 @@ single_case_simulation <- function(with_dif = TRUE,
                                    item_3_delta = 1,
                                    ability_difference = 0,
                                    numeric_cutpoint = 0.5) {
+    ## generates item parameters for both focal and reference group
+    ## dependent on possible present DIF.
     focal_group_item_param <- generate_item_parameters(
         ifelse(with_dif, item_3_delta, 0)
     )
     reference_group_item_param <- generate_item_parameters()
+    ## generates test data
     test_data <- generate_test_data(
         focal_group_item_param,
         reference_group_item_param,
@@ -108,12 +119,14 @@ single_case_simulation <- function(with_dif = TRUE,
         use_binary,
         numeric_cutpoint
     )
+    ## calulates the rpcm tree
     rpcm_tree_result <- rpcm_tree(
         observations ~ covariate,
         data = test_data,
         fitting_func = fitting_function,
         alpha = alpha_niveau
     )
+    ## transforms the test data to the glmer compatible long format
     transformed_test_data <- transform_to_glmer_data(test_data)
 
     group_specific_intercept <- glmer(
@@ -135,7 +148,7 @@ single_case_simulation <- function(with_dif = TRUE,
             optCtrl = list(maxfun = 2e5)
         )
     )
-
+    ## LR-test
     glmer_result <- anova(
         group_specific_intercept,
         group_by_item_intercept
@@ -219,11 +232,18 @@ tree_item_estimates <- function(tree) {
 }
 
 adjusted_rand_index <- function(tree, cutpoint, lrcutpoint) {
+    ## extracts the original data frm the tree
     initial_data <- data.frame(
         id = tree[[1]]$data$id,
         covariate = tree[[1]]$data$covariate
     )
 
+    ## Divides the original covariate in focal and reference group based
+    ## on a cutpoint.
+    ## Returns a by-id sorted vector containing group-ids, which
+    ## idenitify the reference and focal group.
+    ## 0 == reference group
+    ## 1 == focal group
     group_ids <- function(test_data, quantile_prob) {
         covariate_split <- quantile(test_data$covariate, quantile_prob)
         test_data$group_id <- with(
@@ -254,10 +274,13 @@ adjusted_rand_index <- function(tree, cutpoint, lrcutpoint) {
         id = tree[[3]]$data$id,
         group_id = rep.int(1, length(tree[[3]]$data$id))
     )
+    ## combines focal and reference group
     tree <- rbind(reference_group, focal_group)
+    ## sorts combination based on the id
     tree <- tree[order(tree$id), ]
     tree$group_id <- as.factor(tree$group_id)
 
+    ## computes the ari
     tree_result <- mclust::adjustedRandIndex(
         tree$group_id,
         actual_groups
@@ -275,12 +298,14 @@ adjusted_rand_index <- function(tree, cutpoint, lrcutpoint) {
     ))
 }
 
+## Extracts the item estimates from a glmer ouput.
 glmer_item_estimates <- function(glmer_result) {
     estimates <- as.matrix(
         summary(effects::effect("covariate*item", glmer_result))$effect
     )
 
     estimates <- estimates[
+        ## sorts the items
         , stringr::str_sort(colnames(estimates), numeric = TRUE)
     ]
     estimates <- log(estimates)
