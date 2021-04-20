@@ -29,19 +29,26 @@ glmer_fit <- function(y,
     glmer_result <- lme4::glmer(
         count ~ 0 + item + (1 | id),
         data = y_data_frame,
-        offset = if (is.null(offset)) NULL else log(offset),
+        offset = ifelse(is.null(offset), NULL, log(offset)),
         family = "poisson",
         control = lme4::glmerControl(
             optimizer = "bobyqa",
             optCtrl = list(maxfun = 2e5)
         )
     )
+    contributions <- NULL
     ## estfun: empirical estimating function (score/gradient contributions)
+    if (estfun) {
+        contributions <- merDeriv::estfun.glmerMod(glmer_result)
+        ## drops id column
+        contributions <- contributions[, -ncol(contributions)]
+    }
+
     rval <- list(
-        coefficients = exp(lme4::fixef(glmer_result)),
-        objfun = summary(glmer_result)[[6]],
-        estfun = if (estfun) stats::fitted(glmer_result) else NULL, ## previously: glmer_result@optinfo$derivs$gradient
-        object = if (object) glmer_result else NULL
+        coefficients = lme4::fixef(glmer_result),
+        objfun = -as.numeric(summary(glmer_result)[[6]]),
+        estfun = contributions,
+        object = ifelse(object, glmer_result, NULL)
     )
     return(rval)
 }

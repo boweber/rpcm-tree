@@ -20,6 +20,10 @@ fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 source("rpcm_tree_simulation_utilities.R")
 simulation_count <- 1
 sample_size <- 300
+numeric_cutpoint <- 0.25
+lr_cutpoint <- 0.5
+## item_3_delta == item difficulty difference between focal and reference group
+item_3_delta <- 1.5
 
 ## Experimental settings:
 
@@ -68,69 +72,85 @@ conditions <- expand.grid(
     binary = should_be_binary_predictor
 )
 
+## 0.5 is just relevant for dif == TRUE & binary == FALSE
+conditions$cutpoint <- rep(0.5, nrow(conditions))
+
+conditions <- rbind(
+    conditions,
+    data.frame(
+        dif = TRUE,
+        binary = FALSE,
+        cutpoint = 0.25
+    )
+)
+
+
+simulation_results <- vector(mode = "list", length = 6)
+
 for (current_condition in seq_len(nrow(conditions))) {
-    condition_results <- vector(mode = "list", length = 8)
+    condition_results <- vector(mode = "list", length = 6)
 
     for (iteration_number in seq_len(simulation_count)) {
-        numeric_cutpoint <- 0.25
-        lr_cutpoint <- 0.5
         results <- single_case_simulation(
             with_dif = conditions[current_condition, ]$dif,
             use_binary = conditions[current_condition, ]$binary,
             sample_size = sample_size,
             fitting_function = fitting_function,
             alpha_niveau = alpha_niveau,
-            item_3_delta = 1.5,
+            item_3_delta = item_3_delta,
             ability_difference = 0,
-            numeric_cutpoint = numeric_cutpoint
+            numeric_cutpoint = conditions[current_condition, ]$cutpoint
         )
 
         condition_results[[1]][iteration_number] <- results$rpcm_did_find_dif
         condition_results[[2]][iteration_number] <- results$glmer_did_find_dif
 
         if (conditions[current_condition, ]$dif) {
+
+            ## MARK: ARI
+
+            if (!conditions[current_condition, ]$binary) {
+                ari_results <- adjusted_rand_index(
+                    esults$rpcm,
+                    numeric_cutpoint,
+                    lr_cutpoint,
+                    results$rpcm_did_find_dif,
+                    results$glmer_did_find_dif
+                )
+
+                condition_results[[3]][iteration_number] <- ari_results$tree_ari
+                condition_results[[4]][iteration_number] <- ari_results$glmer_ari
+            }
+
+            ## MARK: RPMSE
+            ## predicted <- (item_3 estimate of the reference_group) -
+            ##                       (item_3 estimate of the focal_group)
+            ## actual <- (true difficulty of item 3 for reference group) -
+            ##                       (true difficulty of item 3 for focal group)
+            ## Here: actual is equal to the item_3_delta value
+
+            ## * RPCM-Tree
+
             if (results$rpcm_did_find_dif) {
                 rpcm_estimates <- tree_item_estimates(results$rpcm)
+                rpcm_predicted <- rpcm_estimates$reference[3] -
+                    rpcm_estimates$focal[3]
 
-                condition_results[[3]][iteration_number] <- rmse(
-                    predicted = rpcm_estimates$reference,
-                    actual = results$reference_item_param
-                )
-                condition_results[[4]][iteration_number] <- rmse(
-                    predicted = irpcm_estimates$focal,
-                    actual = results$focal_item_param
-                )
-
-                if (!conditions[current_condition, ]$binary) {
-                    ari_results <- adjusted_rand_index(
-                        esults$rpcm,
-                        numeric_cutpoint,
-                        lr_cutpoint
-                    )
-                    condition_results[[5]][
-                        iteration_number
-                    ] <- ari_results$tree_ari
-                    if (results$glmer_did_find_dif) {
-                        condition_results[[6]][
-                            iteration_number
-                        ] <- ari_results$glmer_ari
-                    }
-                }
+                condition_results[[5]][iteration_number] <- rpcm_predicted -
+                    item_3_delta
             }
+
+            ## * LR-Test
 
             if (results$glmer_did_find_dif) {
                 glmer_estimates <- glmer_item_estimates(
                     results$group_by_item_intercept
                 )
+                glmer_predicted <- glmer_estimates$reference[3] -
+                    glmer_estimates$focal[3]
 
-                condition_results[[7]][iteration_number] <- rmse(
-                    predicted = glmer_estimates$reference,
-                    actual = results$reference_item_param
-                )
-                condition_results[[8]][iteration_number] <- rmse(
-                    predicted = glmer_estimates$focal,
-                    actual = results$focal_item_param
-                )
+                condition_results[[6]][iteration_number] <- glmer_predicted -
+                    item_3_delta
             }
         }
     }
@@ -143,18 +163,50 @@ for (current_condition in seq_len(nrow(conditions))) {
     ##  % of significant test results (delta == 0)
 
     ## Type 2 error rate:
-    ##  item 3 is the target item for DIF detection
     ##  - the item included a prespecified difference between the focal and
     ##    the reference group.
     ##  - differences to detect their impacts
     ##  % of significant test results (delta == 1.5)
-}
 
+    simulation_results[[1]][current_condition] <- compute_error_rate(
+        condition_results[[1]],
+        conditions[current_condition, ]$dif,
+        simulation_count
+    )
+
+    simulation_results[[2]][current_condition] <- compute_error_rate(
+        condition_results[[2]],
+        conditions[current_condition, ]$dif,
+        simulation_count
+    )
+
+    if (conditions[current_condition, ]$dif) {
+
+        ## TODO: Handle NA case
+
+        simulation_results[[3]][current_condition] <- sqrt(
+            (1 / length(condition_results[[5]])) *
+                sum((condition_results[[5]])^2)
+        )
+
+        simulation_results[[4]][current_condition] <- sqrt(
+            (1 / length(condition_results[[6]])) *
+                sum((condition_results[[6]])^2)
+        )
+
+        simulation_results[[5]][current_condition] <-
+            mean(condition_results[[3]])
+
+        simulation_results[[6]][current_condition] <-
+            mean(condition_results[[4]])
+    }
+}
 
 ## MARK: - Simulation Studie 2
 
 ## illustrate the effect of a true ability difference between
-## reference and focal group on the type I error rate and power of the LR test and Rasch tree
+## reference and focal group on the type I error rate
+## and power of the LR test and Rasch tree
 
 ability_differences <- c(-0.5, 0.5)
 
@@ -164,6 +216,8 @@ conditions <- expand.grid(
     ## a value to generate a difference in ability between focal and reference
     ability = ability_differences
 )
+
+simulation_2_results <- vector(mode = "list", length = 6)
 
 for (current_condition in seq_len(nrow(conditions))) {
     condition_results <- vector(mode = "list", length = 2)
@@ -175,12 +229,25 @@ for (current_condition in seq_len(nrow(conditions))) {
             sample_size = sample_size,
             fitting_function = fitting_function,
             alpha_niveau = alpha_niveau,
-            item_3_delta = 1.5,
+            item_3_delta = item_3_delta,
             ability_difference = conditions[current_condition, ]$ability,
-            numeric_cutpoint = 0.25 ## irrelevant in this simulation study
+            ## Just a dummy: Irrelevant in this simulation study
+            numeric_cutpoint = numeric_cutpoint
         )
 
         condition_results[[1]][iteration_number] <- results$rpcm_did_find_dif
         condition_results[[2]][iteration_number] <- results$glmer_did_find_dif
     }
+
+    simulation_2_results[[1]][current_condition] <- compute_error_rate(
+        condition_results[[1]],
+        conditions[current_condition, ]$dif,
+        simulation_count
+    )
+
+    simulation_2_results[[2]][current_condition] <- compute_error_rate(
+        condition_results[[2]],
+        conditions[current_condition, ]$dif,
+        simulation_count
+    )
 }

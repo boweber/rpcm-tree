@@ -231,7 +231,11 @@ tree_item_estimates <- function(tree) {
     ))
 }
 
-adjusted_rand_index <- function(tree, cutpoint, lrcutpoint) {
+adjusted_rand_index <- function(tree,
+                                cutpoint,
+                                lrcutpoint,
+                                tree_did_find_dif,
+                                glmer_did_find_dif) {
     ## extracts the original data frm the tree
     initial_data <- data.frame(
         id = tree[[1]]$data$id,
@@ -265,32 +269,40 @@ adjusted_rand_index <- function(tree, cutpoint, lrcutpoint) {
     ## MARK: true groups
     actual_groups <- group_ids(initial_data, cutpoint)
 
-    ## compute the ari for the tree
-    reference_group <- data.frame(
-        id = tree[[2]]$data$id,
-        group_id = rep.int(0, length(tree[[2]]$data$id))
-    )
-    focal_group <- data.frame(
-        id = tree[[3]]$data$id,
-        group_id = rep.int(1, length(tree[[3]]$data$id))
-    )
-    ## combines focal and reference group
-    tree <- rbind(reference_group, focal_group)
-    ## sorts combination based on the id
-    tree <- tree[order(tree$id), ]
-    tree$group_id <- as.factor(tree$group_id)
+    if (tree_did_find_dif) {
+        ## compute the ari for the tree
+        reference_group <- data.frame(
+            id = tree[[2]]$data$id,
+            group_id = rep.int(0, length(tree[[2]]$data$id))
+        )
+        focal_group <- data.frame(
+            id = tree[[3]]$data$id,
+            group_id = rep.int(1, length(tree[[3]]$data$id))
+        )
+        ## combines focal and reference group
+        tree <- rbind(reference_group, focal_group)
+        ## sorts combination based on the id
+        tree <- tree[order(tree$id), ]
+        tree$group_id <- as.factor(tree$group_id)
 
-    ## computes the ari
-    tree_result <- mclust::adjustedRandIndex(
-        tree$group_id,
-        actual_groups
-    )
+        ## computes the ari
+        tree_result <- mclust::adjustedRandIndex(
+            tree$group_id,
+            actual_groups
+        )
+    } else {
+        tree_result <- NA
+    }
 
-    ## compute the ari for LR
-    glmer_result <- mclust::adjustedRandIndex(
-        group_ids(initial_data, lrcutpoint),
-        actual_groups
-    )
+    if (glmer_did_find_dif) {
+        ## compute the ari for LR
+        glmer_result <- mclust::adjustedRandIndex(
+            group_ids(initial_data, lrcutpoint),
+            actual_groups
+        )
+    } else {
+        glmer_result <- NA
+    }
 
     return(data.frame(
         tree_ari = tree_result,
@@ -313,4 +325,15 @@ glmer_item_estimates <- function(glmer_result) {
         reference = estimates[which(rownames(estimates) == "reference"), ],
         focal = estimates[which(rownames(estimates) == "focal"), ]
     ))
+}
+
+compute_error_rate <- function(dif_observations,
+                               with_dif,
+                               simulation_count) {
+    ## number of times, dif was detected
+    number_of_detected_dif <- sum(
+        ifelse(with_dif, !dif_observations, dif_observations),
+        na.rm = TRUE
+    )
+    return(number_of_detected_dif / simulation_count)
 }
