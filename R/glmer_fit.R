@@ -36,12 +36,14 @@ glmer_fit <- function(y,
             optCtrl = list(maxfun = 2e5)
         )
     )
-    contributions <- NULL
+
     ## estfun: empirical estimating function (score/gradient contributions)
     if (estfun) {
         contributions <- merDeriv::estfun.glmerMod(glmer_result)
         ## drops id column
         contributions <- contributions[, -ncol(contributions)]
+    } else {
+        contributions <- NULL
     }
 
     rval <- list(

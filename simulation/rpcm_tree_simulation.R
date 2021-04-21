@@ -3,7 +3,7 @@
 if (!require("devtools")) install.packages("devtools")
 library("devtools")
 if (!require("rpcmtree")) devtools::install_github("boweber/rpcm-tree")
-library("rpcmtree", attach.required = TRUE)
+library("rpcmtree")
 library("partykit") ## mob
 library("lme4") ## glmer
 library("mclust") ## adjustedRandIndex
@@ -20,9 +20,11 @@ fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 source("rpcm_tree_simulation_utilities.R")
 simulation_count <- 1
 sample_size <- 300
-numeric_cutpoint <- 0.25
+## the cutpoint of the LR-Test
+## Here 0.5 == median
 lr_cutpoint <- 0.5
 ## item_3_delta == item difficulty difference between focal and reference group
+## only present when dif is simulated
 item_3_delta <- 1.5
 
 ## Experimental settings:
@@ -84,11 +86,10 @@ conditions <- rbind(
     )
 )
 
-
-simulation_results <- vector(mode = "list", length = 6)
+simulation_results <- vector(mode = "list")
 
 for (current_condition in seq_len(nrow(conditions))) {
-    condition_results <- vector(mode = "list", length = 6)
+    condition_results <- vector(mode = "list")
 
     for (iteration_number in seq_len(simulation_count)) {
         results <- single_case_simulation(
@@ -101,9 +102,8 @@ for (current_condition in seq_len(nrow(conditions))) {
             ability_difference = 0,
             numeric_cutpoint = conditions[current_condition, ]$cutpoint
         )
-
-        condition_results[[1]][iteration_number] <- results$rpcm_did_find_dif
-        condition_results[[2]][iteration_number] <- results$glmer_did_find_dif
+        condition_results$rpcm_dif_detections[iteration_number] <- results$rpcm_did_find_dif
+        condition_results$glmer_dif_detections[iteration_number] <- results$glmer_did_find_dif
 
         if (conditions[current_condition, ]$dif) {
 
@@ -111,15 +111,14 @@ for (current_condition in seq_len(nrow(conditions))) {
 
             if (!conditions[current_condition, ]$binary) {
                 ari_results <- adjusted_rand_index(
-                    esults$rpcm,
-                    numeric_cutpoint,
+                    results$rpcm,
+                    conditions[current_condition, ]$cutpoint,
                     lr_cutpoint,
                     results$rpcm_did_find_dif,
                     results$glmer_did_find_dif
                 )
-
-                condition_results[[3]][iteration_number] <- ari_results$tree_ari
-                condition_results[[4]][iteration_number] <- ari_results$glmer_ari
+                condition_results$rpcm_aris[iteration_number] <- ari_results$tree_ari
+                condition_results$glmer_aris[iteration_number] <- ari_results$glmer_ari
             }
 
             ## MARK: RPMSE
@@ -136,7 +135,7 @@ for (current_condition in seq_len(nrow(conditions))) {
                 rpcm_predicted <- rpcm_estimates$reference[3] -
                     rpcm_estimates$focal[3]
 
-                condition_results[[5]][iteration_number] <- rpcm_predicted -
+                condition_results$rpcm_differences[iteration_number] <- rpcm_predicted -
                     item_3_delta
             }
 
@@ -149,7 +148,7 @@ for (current_condition in seq_len(nrow(conditions))) {
                 glmer_predicted <- glmer_estimates$reference[3] -
                     glmer_estimates$focal[3]
 
-                condition_results[[6]][iteration_number] <- glmer_predicted -
+                condition_results$glmer_differences[iteration_number] <- glmer_predicted -
                     item_3_delta
             }
         }
@@ -168,14 +167,14 @@ for (current_condition in seq_len(nrow(conditions))) {
     ##  - differences to detect their impacts
     ##  % of significant test results (delta == 1.5)
 
-    simulation_results[[1]][current_condition] <- compute_error_rate(
-        condition_results[[1]],
+    simulation_results$rpcm_error_rate[current_condition] <- compute_error_rate(
+        condition_results$rpcm_dif_detections,
         conditions[current_condition, ]$dif,
         simulation_count
     )
 
-    simulation_results[[2]][current_condition] <- compute_error_rate(
-        condition_results[[2]],
+    simulation_results$glmer_error_rate[current_condition] <- compute_error_rate(
+        condition_results$glmer_dif_detections,
         conditions[current_condition, ]$dif,
         simulation_count
     )
@@ -184,23 +183,25 @@ for (current_condition in seq_len(nrow(conditions))) {
 
         ## TODO: Handle NA case
 
-        simulation_results[[3]][current_condition] <- sqrt(
-            (1 / length(condition_results[[5]])) *
-                sum((condition_results[[5]])^2)
+        simulation_results$rpcm_rmse[current_condition] <- sqrt(
+            (1 / length(condition_results$rpcm_differences)) *
+                sum((condition_results$rpcm_differences)^2)
         )
 
-        simulation_results[[4]][current_condition] <- sqrt(
-            (1 / length(condition_results[[6]])) *
-                sum((condition_results[[6]])^2)
+        simulation_results$glmer_rmse[current_condition] <- sqrt(
+            (1 / length(condition_results$glmer_differences)) *
+                sum((condition_results$glmer_differences)^2)
         )
 
-        simulation_results[[5]][current_condition] <-
-            mean(condition_results[[3]])
+        simulation_results$rpcm_aris[current_condition] <-
+            mean(condition_results$rpcm_aris)
 
-        simulation_results[[6]][current_condition] <-
-            mean(condition_results[[4]])
+        simulation_results$glmer_aris[current_condition] <-
+            mean(condition_results$glmer_aris)
     }
 }
+
+save(simulation_results, file = "Simulation_Study_I.RData")
 
 ## MARK: - Simulation Studie 2
 
@@ -217,10 +218,10 @@ conditions <- expand.grid(
     ability = ability_differences
 )
 
-simulation_2_results <- vector(mode = "list", length = 6)
+simulation_2_results <- vector(mode = "list")
 
 for (current_condition in seq_len(nrow(conditions))) {
-    condition_results <- vector(mode = "list", length = 2)
+    condition_results <- vector(mode = "list")
 
     for (iteration_number in seq_len(simulation_count)) {
         results <- single_case_simulation(
@@ -235,19 +236,20 @@ for (current_condition in seq_len(nrow(conditions))) {
             numeric_cutpoint = numeric_cutpoint
         )
 
-        condition_results[[1]][iteration_number] <- results$rpcm_did_find_dif
-        condition_results[[2]][iteration_number] <- results$glmer_did_find_dif
+        condition_results$rpcm_dif_detections[iteration_number] <- results$rpcm_did_find_dif
+        condition_results$glmer_dif_detections[iteration_number] <- results$glmer_did_find_dif
     }
 
-    simulation_2_results[[1]][current_condition] <- compute_error_rate(
-        condition_results[[1]],
+    simulation_2_results$rpcm_error_rate[current_condition] <- compute_error_rate(
+        condition_results$rpcm_dif_detections,
         conditions[current_condition, ]$dif,
         simulation_count
     )
 
-    simulation_2_results[[2]][current_condition] <- compute_error_rate(
-        condition_results[[2]],
+    simulation_2_results$glmer_error_rate[current_condition] <- compute_error_rate(
+        condition_results$glmer_dif_detections,
         conditions[current_condition, ]$dif,
         simulation_count
     )
 }
+save(simulation_2_results, file = "Simulation_Study_II.RData")
