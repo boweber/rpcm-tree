@@ -18,7 +18,7 @@ fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 
 ### loads helper and data generation functions
 source("rpcm_tree_simulation_utilities.R")
-simulation_count <- 1
+simulation_count <- 2
 sample_size <- 300
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median

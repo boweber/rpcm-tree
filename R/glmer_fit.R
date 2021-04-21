@@ -38,18 +38,14 @@ glmer_fit <- function(y,
     )
 
     ## estfun: empirical estimating function (score/gradient contributions)
-    if (estfun) {
-        contributions <- merDeriv::estfun.glmerMod(glmer_result)
-        ## drops id column
-        contributions <- contributions[, -ncol(contributions)]
-    } else {
-        contributions <- NULL
-    }
+    contributions <- merDeriv::estfun.glmerMod(glmer_result)
+    ## drops id column
+    contributions <- contributions[, -ncol(contributions)]
 
     rval <- list(
         coefficients = lme4::fixef(glmer_result),
         objfun = -as.numeric(summary(glmer_result)[[6]]),
-        estfun = contributions,
+        estfun = ifelse(estfun, contributions, NULL),
         object = ifelse(object, glmer_result, NULL)
     )
     return(rval)
