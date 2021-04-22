@@ -9,23 +9,26 @@ library("lme4") ## glmer
 library("mclust") ## adjustedRandIndex
 library("tidyverse") ## str_sort
 library("effects") ## effect
+library("merDeriv") ## estfun.glmerMod
+library("tictoc") ## tic toc
 
 ## MARK: - Prepare simulation
 
+should_log <- TRUE
 use_glmer <- TRUE
 alpha_niveau <- 0.05
 fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 
 ### loads helper and data generation functions
 source("rpcm_tree_simulation_utilities.R")
-simulation_count <- 2
+simulation_count <- 1
 sample_size <- 300
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
 lr_cutpoint <- 0.5
 ## item_3_delta == item difficulty difference between focal and reference group
 ## only present when dif is simulated
-item_3_delta <- 1.5
+item_3_delta <- 1
 
 ## Experimental settings:
 
@@ -88,11 +91,32 @@ conditions <- rbind(
 
 simulation_results <- vector(mode = "list")
 
+if (should_log) {
+    tic("Total")
+}
+
 for (current_condition in seq_len(nrow(conditions))) {
     condition_results <- vector(mode = "list")
 
+    if (should_log) {
+        print(paste(
+            "Current simulation condition:",
+            "dif",
+            toString(conditions[current_condition, ]$dif),
+            "binary",
+            toString(conditions[current_condition, ]$binary),
+            "cutpoint",
+            toString(conditions[current_condition, ]$cutpoint)
+        ))
+        tic(paste("condition number", toString(current_condition)))
+    }
+
     for (iteration_number in seq_len(simulation_count)) {
-        results <- single_case_simulation(
+        if (should_log) {
+            print(paste("Starting iteration", toString(iteration_number)))
+        }
+
+        single_case_result <- single_case_simulation(
             with_dif = conditions[current_condition, ]$dif,
             use_binary = conditions[current_condition, ]$binary,
             sample_size = sample_size,
@@ -100,10 +124,12 @@ for (current_condition in seq_len(nrow(conditions))) {
             alpha_niveau = alpha_niveau,
             item_3_delta = item_3_delta,
             ability_difference = 0,
-            numeric_cutpoint = conditions[current_condition, ]$cutpoint
+            numeric_cutpoint = conditions[current_condition, ]$cutpoint,
+            should_log
         )
-        condition_results$rpcm_dif_detections[iteration_number] <- results$rpcm_did_find_dif
-        condition_results$glmer_dif_detections[iteration_number] <- results$glmer_did_find_dif
+
+        condition_results$rpcm_dif_detections[iteration_number] <- single_case_result$rpcm_did_find_dif
+        condition_results$glmer_dif_detections[iteration_number] <- single_case_result$glmer_did_find_dif
 
         if (conditions[current_condition, ]$dif) {
 
@@ -111,11 +137,11 @@ for (current_condition in seq_len(nrow(conditions))) {
 
             if (!conditions[current_condition, ]$binary) {
                 ari_results <- adjusted_rand_index(
-                    results$rpcm,
+                    single_case_result$rpcm,
                     conditions[current_condition, ]$cutpoint,
                     lr_cutpoint,
-                    results$rpcm_did_find_dif,
-                    results$glmer_did_find_dif
+                    single_case_result$rpcm_did_find_dif,
+                    single_case_result$glmer_did_find_dif
                 )
                 condition_results$rpcm_aris[iteration_number] <- ari_results$tree_ari
                 condition_results$glmer_aris[iteration_number] <- ari_results$glmer_ari
@@ -126,33 +152,42 @@ for (current_condition in seq_len(nrow(conditions))) {
             ##                       (item_3 estimate of the focal_group)
             ## actual <- (true difficulty of item 3 for reference group) -
             ##                       (true difficulty of item 3 for focal group)
-            ## Here: actual is equal to the item_3_delta value
+            ## Here: actual is equal to the item_3_delta value in case of dif
+            actual_difference <- ifelse(conditions[current_condition, ]$dif, item_3_delta, 0)
 
             ## * RPCM-Tree
 
-            if (results$rpcm_did_find_dif) {
-                rpcm_estimates <- tree_item_estimates(results$rpcm)
+            if (single_case_result$rpcm_did_find_dif) {
+                rpcm_estimates <- tree_item_estimates(single_case_result$rpcm)
                 rpcm_predicted <- rpcm_estimates$reference[3] -
                     rpcm_estimates$focal[3]
 
                 condition_results$rpcm_differences[iteration_number] <- rpcm_predicted -
-                    item_3_delta
+                    actual_difference
             }
 
             ## * LR-Test
 
-            if (results$glmer_did_find_dif) {
+            if (single_case_result$glmer_did_find_dif) {
                 glmer_estimates <- glmer_item_estimates(
-                    results$group_by_item_intercept
+                    single_case_result$group_by_item_intercept,
+                    !conditions[current_condition, ]$binary
                 )
                 glmer_predicted <- glmer_estimates$reference[3] -
                     glmer_estimates$focal[3]
 
                 condition_results$glmer_differences[iteration_number] <- glmer_predicted -
-                    item_3_delta
+                    actual_difference
             }
         }
+        if (should_log) {
+            print(paste(
+                "Current iteration results",
+                toString(lapply(condition_results, function(x) x[iteration_number]))
+            ))
+        }
     }
+    toc()
 
     ## Compute the results of the current simulation conditions
 
@@ -202,7 +237,7 @@ for (current_condition in seq_len(nrow(conditions))) {
 }
 
 save(simulation_results, file = "Simulation_Study_I.RData")
-
+toc()
 ## MARK: - Simulation Studie 2
 
 ## illustrate the effect of a true ability difference between
@@ -233,7 +268,8 @@ for (current_condition in seq_len(nrow(conditions))) {
             item_3_delta = item_3_delta,
             ability_difference = conditions[current_condition, ]$ability,
             ## Just a dummy: Irrelevant in this simulation study
-            numeric_cutpoint = numeric_cutpoint
+            numeric_cutpoint = numeric_cutpoint,
+            should_log
         )
 
         condition_results$rpcm_dif_detections[iteration_number] <- results$rpcm_did_find_dif
