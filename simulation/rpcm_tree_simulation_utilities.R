@@ -170,7 +170,8 @@ single_case_simulation <- function(with_dif = TRUE,
         rpcm_did_find_dif = did_find_dif(rpcm_tree_result),
         glmer = glmer_result,
         group_by_item_intercept = group_by_item_intercept,
-        glmer_did_find_dif = glmer_result$`Pr(>Chisq)`[2] < alpha_niveau
+        glmer_did_find_dif = glmer_result$`Pr(>Chisq)`[2] < alpha_niveau,
+        transformed_test_data = transformed_test_data
     ))
 }
 
@@ -313,7 +314,8 @@ adjusted_rand_index <- function(tree,
 }
 
 ## Extracts the item estimates from a glmer ouput.
-glmer_item_estimates <- function(glmer_result, is_numeric) {
+## transformed_test_data needs to be in the current scope
+glmer_item_estimates <- function(glmer_result, is_numeric, transformed_test_data) {
     if (is_numeric) {
         glmer_effects <- effects::effect("item*covariate", glmer_result, xlevels = 2)
     } else {

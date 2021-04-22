@@ -98,6 +98,8 @@ if (should_log) {
 for (current_condition in seq_len(nrow(conditions))) {
     condition_results <- vector(mode = "list")
 
+    if (current_condition == 1) next
+
     if (should_log) {
         print(paste(
             "Current simulation condition:",
@@ -136,6 +138,9 @@ for (current_condition in seq_len(nrow(conditions))) {
             ## MARK: ARI
 
             if (!conditions[current_condition, ]$binary) {
+                if (should_log) {
+                    print("Calculating ari")
+                }
                 ari_results <- adjusted_rand_index(
                     single_case_result$rpcm,
                     conditions[current_condition, ]$cutpoint,
@@ -158,6 +163,9 @@ for (current_condition in seq_len(nrow(conditions))) {
             ## * RPCM-Tree
 
             if (single_case_result$rpcm_did_find_dif) {
+                if (should_log) {
+                    print("Calculating rpcm difference")
+                }
                 rpcm_estimates <- tree_item_estimates(single_case_result$rpcm)
                 rpcm_predicted <- rpcm_estimates$reference[3] -
                     rpcm_estimates$focal[3]
@@ -169,9 +177,13 @@ for (current_condition in seq_len(nrow(conditions))) {
             ## * LR-Test
 
             if (single_case_result$glmer_did_find_dif) {
+                if (should_log) {
+                    print("Calculating glmer difference")
+                }
                 glmer_estimates <- glmer_item_estimates(
                     single_case_result$group_by_item_intercept,
-                    !conditions[current_condition, ]$binary
+                    !conditions[current_condition, ]$binary,
+                    single_case_result$transformed_test_data
                 )
                 glmer_predicted <- glmer_estimates$reference[3] -
                     glmer_estimates$focal[3]
@@ -238,6 +250,7 @@ for (current_condition in seq_len(nrow(conditions))) {
 
 save(simulation_results, file = "Simulation_Study_I.RData")
 toc()
+
 ## MARK: - Simulation Studie 2
 
 ## illustrate the effect of a true ability difference between
