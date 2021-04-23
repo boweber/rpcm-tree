@@ -20,9 +20,9 @@ alpha_niveau <- 0.05
 fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 
 ### loads helper and data generation functions
-source("rpcm_tree_simulation+data_generation")
-source("rpcm_tree_simulation+rmse")
-source("rpcm_tree_simulation+ari")
+source("rpcm_tree_simulation+data_generation.R")
+source("rpcm_tree_simulation+rmse.R")
+source("rpcm_tree_simulation+ari.R")
 source("rpcm_tree_simulation+utilities.R")
 simulation_count <- 1
 sample_size <- 300

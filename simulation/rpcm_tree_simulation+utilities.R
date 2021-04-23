@@ -47,7 +47,7 @@ single_case_simulation <- function(with_dif = TRUE,
         )
 
         if (should_log) {
-            print("Finished Calculating the rpcm tree")
+            print("Finished calculating the rpcm tree")
         }
         rpcmtree_did_find_dif <- length(rpcm_tree_result) > 1
         if (calculate_rmse) {
@@ -123,7 +123,7 @@ single_case_simulation <- function(with_dif = TRUE,
         rpcmtree_did_find_dif = rpcmtree_did_find_dif,
         lr_did_find_dif = lr_did_find_dif,
         rpcmtree_rmse = rpcmtree_rmse,
-        glmer_rmse = glmer_rmse,
+        glmer_rmse = glmer_rmse
     ))
 }
 
