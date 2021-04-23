@@ -31,7 +31,7 @@ sample_size <- 300
 lr_cutpoint <- 0.5
 ## item_3_delta == item difficulty difference between focal and reference group
 ## only present when dif is simulated
-item_3_delta <- 1
+item_3_delta <- 0.25
 
 ## Experimental settings:
 
