@@ -39,7 +39,7 @@ adjusted_rand_index <- function(tree,
             tree_groups$actual_group
         )
     } else {
-        tree_result <- NA
+        tree_result <- 0
     }
 
     if (glmer_did_find_dif) {
@@ -63,7 +63,7 @@ adjusted_rand_index <- function(tree,
             static_group_ids(cutpoint)
         )
     } else {
-        glmer_result <- NA
+        glmer_result <- 0
     }
 
     return(data.frame(

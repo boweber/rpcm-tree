@@ -1,7 +1,6 @@
 ## MARK: - Install and load required libraries
 
 if (!require("devtools")) install.packages("devtools")
-library("devtools")
 if (!require("rpcmtree")) devtools::install_github("boweber/rpcm-tree")
 library("rpcmtree")
 library("partykit") ## mob
@@ -24,7 +23,7 @@ source("rpcm_tree_simulation+data_generation.R")
 source("rpcm_tree_simulation+rmse.R")
 source("rpcm_tree_simulation+ari.R")
 source("rpcm_tree_simulation+utilities.R")
-simulation_count <- 1
+simulation_count <- 3
 sample_size <- 300
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
