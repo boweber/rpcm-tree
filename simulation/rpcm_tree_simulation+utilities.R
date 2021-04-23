@@ -37,6 +37,7 @@ single_case_simulation <- function(with_dif = TRUE,
     ## and not the rmse itself!
     rpcmtree_rmse <- NA
     glmer_rmse <- NA
+    actual_difference <- ifelse(with_dif, item_3_delta, 0)
 
     if (!skip_rpcm) {
         rpcm_tree_result <- rpcmtree::rpcm_tree(
@@ -56,7 +57,7 @@ single_case_simulation <- function(with_dif = TRUE,
                 !use_binary,
                 rpcmtree_item_estimates,
                 rpcmtree_did_find_dif,
-                item_3_delta
+                actual_difference
             )
         }
     }
@@ -111,7 +112,7 @@ single_case_simulation <- function(with_dif = TRUE,
                 !use_binary,
                 glmer_item_estimates,
                 lr_did_find_dif,
-                item_3_delta
+                actual_difference
             )
             remove("transformed_test_data", envir = .GlobalEnv)
         }
