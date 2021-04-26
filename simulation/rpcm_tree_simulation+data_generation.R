@@ -48,7 +48,7 @@ generate_test_data <- function(focal_group_deltas,
             number_of_people,
             replace = TRUE
         ),
-        ## An idenitifier.
+        ## An identifier.
         id = 1:number_of_people
     )
 

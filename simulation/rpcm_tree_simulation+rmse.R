@@ -1,3 +1,9 @@
+rmse <- function(differences) {
+    sqrt(
+        (1 / length(differences)) * sum((differences)^2)
+    )
+}
+
 item_3_difference <- function(output,
                               is_numeric,
                               get_estimate_function,

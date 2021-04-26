@@ -9,7 +9,6 @@ single_case_simulation <- function(with_dif = TRUE,
                                    item_3_delta = 1,
                                    ability_difference = 0,
                                    numeric_cutpoint = 0.5,
-                                   should_log = TRUE,
                                    calculate_rmse = TRUE,
                                    ## Used for debugging
                                    skip_rpcm = FALSE,
@@ -36,29 +35,32 @@ single_case_simulation <- function(with_dif = TRUE,
     ## Just a component to compute the rmse
     ## and not the rmse itself!
     rpcmtree_rmse <- NA
+    rpcmtree_time <- NA
+    glmer_time <- NA
     glmer_rmse <- NA
     actual_difference <- ifelse(with_dif, item_3_delta, 0)
 
     if (!skip_rpcm) {
-        rpcm_tree_result <- rpcmtree::rpcm_tree(
+        start_time <- Sys.time()
+        rpcm_tree_result <- try(rpcmtree::rpcm_tree(
             observations ~ covariate,
             data = test_data,
             fitting_func = fitting_function,
             alpha = alpha_niveau
-        )
+        ))
+        rpcmtree_time <- difftime(Sys.time(), start_time, units = "secs")[[1]]
+        if (!is.error(rpcm_tree_result)) {
+            rpcmtree_did_find_dif <- length(rpcm_tree_result) > 1
 
-        if (should_log) {
-            print("Finished calculating the rpcm tree")
-        }
-        rpcmtree_did_find_dif <- length(rpcm_tree_result) > 1
-        if (calculate_rmse) {
-            rpcmtree_rmse <- item_3_difference(
-                rpcm_tree_result,
-                !use_binary,
-                rpcmtree_item_estimates,
-                rpcmtree_did_find_dif,
-                actual_difference
-            )
+            if (calculate_rmse) {
+                rpcmtree_rmse <- item_3_difference(
+                    rpcm_tree_result,
+                    !use_binary,
+                    rpcmtree_item_estimates,
+                    rpcmtree_did_find_dif,
+                    actual_difference
+                )
+            }
         }
     }
 
@@ -66,7 +68,7 @@ single_case_simulation <- function(with_dif = TRUE,
         ## transforms the test data to the glmer compatible long format
         transformed_test_data <- transform_to_glmer_data(test_data)
         if (calculate_rmse) {
-            ## in order to use the effect function transformed_test_data
+            ## in order to use the effect function, transformed_test_data
             ## must be in the global environment
             ## https://cran.r-project.org/web/packages/car/vignettes/embedding.pdf
             assign("transformed_test_data",
@@ -74,67 +76,128 @@ single_case_simulation <- function(with_dif = TRUE,
                 env = .GlobalEnv
             )
         }
-
-        group_specific_intercept <- lme4::glmer(
-            observation ~ 0 + item + covariate + (1 | id),
-            data = transformed_test_data,
-            family = "poisson",
-            control = glmerControl(
-                optimizer = "bobyqa",
-                optCtrl = list(maxfun = 2e5)
+        start_time <- Sys.time()
+        try({
+            group_specific_intercept <- lme4::glmer(
+                observation ~ 0 + item + covariate + (1 | id),
+                data = transformed_test_data,
+                family = "poisson",
+                control = lme4::glmerControl(
+                    optimizer = "bobyqa",
+                    optCtrl = list(maxfun = 2e5)
+                )
             )
-        )
 
-        group_by_item_intercept <- lme4::glmer(
-            observation ~ 0 + item + covariate + (1 | id) + item * covariate,
-            data = transformed_test_data,
-            family = "poisson",
-            control = glmerControl(
-                optimizer = "bobyqa",
-                optCtrl = list(maxfun = 2e5)
+            group_by_item_intercept <- lme4::glmer(
+                observation ~ 0 + item + covariate + (1 | id) + item * covariate,
+                data = transformed_test_data,
+                family = "poisson",
+                control = lme4::glmerControl(
+                    optimizer = "bobyqa",
+                    optCtrl = list(maxfun = 2e5)
+                )
             )
-        )
-        ## LR-test
-        glmer_result <- anova(
-            group_specific_intercept,
-            group_by_item_intercept
-        )
-
-        if (should_log) {
-            print("Finished the LR-Test")
-        }
-        ## TODO: Verify < alpha is correct compared to <=
-        lr_did_find_dif <- glmer_result$`Pr(>Chisq)`[2] < alpha_niveau
-
-        if (calculate_rmse) {
-            glmer_rmse <- item_3_difference(
-                group_by_item_intercept,
-                !use_binary,
-                glmer_item_estimates,
-                lr_did_find_dif,
-                actual_difference
+            ## LR-test
+            glmer_result <- lavaan::anova(
+                group_specific_intercept,
+                group_by_item_intercept
             )
-            remove("transformed_test_data", envir = .GlobalEnv)
+        })
+
+        glmer_time <- difftime(Sys.time(), start_time, units = "secs")[[1]]
+        if (!is.error(glmer_result) && !is.error(group_by_item_intercept)) {
+            lr_did_find_dif <- glmer_result$`Pr(>Chisq)`[2] < alpha_niveau
+
+            if (calculate_rmse) {
+                glmer_rmse <- item_3_difference(
+                    group_by_item_intercept,
+                    !use_binary,
+                    glmer_item_estimates,
+                    lr_did_find_dif,
+                    actual_difference
+                )
+                remove("transformed_test_data", envir = .GlobalEnv)
+            }
         }
     }
-
     ## compute results
     return(list(
         rpcm_tree = rpcm_tree_result,
         rpcmtree_did_find_dif = rpcmtree_did_find_dif,
         lr_did_find_dif = lr_did_find_dif,
         rpcmtree_rmse = rpcmtree_rmse,
-        glmer_rmse = glmer_rmse
+        glmer_rmse = glmer_rmse,
+        rpcmtree_time = rpcmtree_time,
+        lr_time = glmer_time
     ))
 }
+
+## http://adv-r.had.co.nz/Exceptions-Debugging.html
+is.error <- function(x) inherits(x, "try-error")
 
 compute_error_rate <- function(dif_observations,
                                with_dif,
                                simulation_count) {
     ## number of times, dif was detected
     number_of_detected_dif <- sum(
-        ifelse(with_dif, !dif_observations, dif_observations),
+        if (with_dif) !dif_observations else dif_observations,
         na.rm = TRUE
     )
     return(number_of_detected_dif / simulation_count)
+}
+
+log_current_condition <- function(condition) {
+    print("* Current simulation condition:")
+    print(paste(
+        "   - dif is simulated:",
+        toString(condition$dif)
+    ))
+    print(paste(
+        "   - covariate is binary:",
+        toString(condition$binary)
+    ))
+    print(paste(
+        "   - cutpoint is set to:",
+        toString(condition$cutpoint)
+    ))
+    print(paste(
+        "   - ability is set to:",
+        toString(condition$ability)
+    ))
+}
+
+log_condition_results <- function(condition_results) {
+    print("* Condition results:")
+    print(paste(
+        "   - rpcm dif detections:",
+        toString(condition_results$rpcm_dif_detections)
+    ))
+    print(paste(
+        "   - lr test dif detections:",
+        toString(condition_results$glmer_dif_detections)
+    ))
+    print(paste(
+        "   - rpcm computation times:",
+        toString(condition_results$rpcmtree_times)
+    ))
+    print(paste(
+        "   - lr test computation times:",
+        toString(condition_results$lr_times)
+    ))
+    print(paste(
+        "   - rpcm estimate difference:",
+        toString(condition_results$rpcm_differences)
+    ))
+    print(paste(
+        "   - glmer estimate difference:",
+        toString(condition_results$glmer_differences)
+    ))
+    print(paste(
+        "   - rpcm aris:",
+        toString(condition_results$rpcm_aris)
+    ))
+    print(paste(
+        "   - glmer aris:",
+        toString(condition_results$glmer_aris)
+    ))
 }
