@@ -214,11 +214,8 @@ append_condition_results <- function(condition_results,
                                      simulation_results,
                                      condition_index,
                                      conditions,
-                                     should_log,
                                      with_ari_and_rmse,
                                      simulation_count) {
-    if (should_log) log_condition_results(condition_results)
-
     simulation_results$rpcm_error_rate[condition_index] <- compute_error_rate(
         condition_results$rpcmtree_did_find_dif,
         conditions[condition_index, ]$dif,

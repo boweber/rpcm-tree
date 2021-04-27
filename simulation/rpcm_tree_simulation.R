@@ -28,7 +28,7 @@ source("simulation/rpcm_tree_simulation+rmse.R")
 source("simulation/rpcm_tree_simulation+ari.R")
 source("simulation/rpcm_tree_simulation+utilities.R")
 simulation_count <- 2
-sample_size <- 300
+sample_size <- 400
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
 lr_cutpoint <- 0.5
@@ -161,21 +161,23 @@ for (current_condition in seq_len(nrow(conditions))) {
             lr_ari = lr_ari
         ))
     }
+    if (should_log) {
+        log_condition_results(condition_results)
+        toc()
+    }
+
     simulation_1_results <- append_condition_results(
         condition_results = condition_results,
         simulation_results = simulation_1_results,
         condition_index = current_condition,
         conditions = conditions,
-        should_log = should_log,
         with_ari_and_rmse = TRUE,
         simulation_count = simulation_count
     )
-    if (should_log) toc()
 }
 if (should_log) toc()
 ## Total: 4043.519 sec elapsed iteration_count == 4
 simulation_1_results <- set_row_names(simulation_1_results, conditions)
-
 save(simulation_1_results, file = "Simulation_Study_I.RData")
 
 ## MARK: - Simulation Studie 2
@@ -232,17 +234,19 @@ for (current_condition in seq_len(nrow(conditions))) {
             lr_time = single_case_result$lr_time
         ))
     }
-    if (should_log) toc()
+    if (should_log) {
+        log_condition_results(condition_results)
+        toc()
+    }
     simulation_2_results <- append_condition_results(
         condition_results = condition_results,
         simulation_results = simulation_2_results,
         condition_index = current_condition,
         conditions = conditions,
-        should_log = should_log,
         with_ari_and_rmse = FALSE,
         simulation_count = simulation_count
     )
 }
 if (should_log) toc() ## 1484.347 sec elapsed
-simulation_2_results <- set_row_names(simulation_1_results, conditions)
+simulation_2_results <- set_row_names(simulation_2_results, conditions)
 save(simulation_2_results, file = "Simulation_Study_II.RData")

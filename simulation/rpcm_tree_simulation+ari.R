@@ -1,8 +1,8 @@
 adjusted_rand_index <- function(tree,
-                                cutpoint,
-                                lrcutpoint,
-                                tree_did_find_dif,
-                                glmer_did_find_dif) {
+                                cutpoint = 0.25,
+                                lrcutpoint = 0.5,
+                                tree_did_find_dif = TRUE,
+                                glmer_did_find_dif = TRUE) {
     ## original data
     initial_covariate <- tree[[1]]$data$covariate
 
