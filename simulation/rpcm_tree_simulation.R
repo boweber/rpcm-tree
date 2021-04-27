@@ -46,9 +46,7 @@ item_3_delta <- 0.35
 ##  -> or with item and person parameters differing between groups
 ## - item parameters (generate_item_parameters)
 ##  -> arbitraily chosen
-##  -> ensure adequate overlap between item & person
-##     parameter distribution (reference group)
-##  -> value delta (0 <= delta <= 1.5) was added to the third
+##  -> value delta (0 <= item_3_delta <= 0.35) was added to the third
 ##     item parameter (focal group)
 ## - person parameters (generate_abilities)
 ##  -> reference group: N(0 - d / 2, 1)
@@ -71,7 +69,7 @@ item_3_delta <- 0.35
 ## delta == 0 corresponds to H_0
 ##  -> all responses are generated with the same item parameters
 ## only one covariate (either binary or numeric)
-## Cutpoint location: median (or 80)
+## Cutpoint location: median
 
 should_simulate_dif <- c(FALSE, TRUE)
 should_be_binary_predictor <- c(FALSE, TRUE)
@@ -96,7 +94,10 @@ conditions <- rbind(
 )
 
 simulation_1_results <- vector(mode = "list")
-if (should_log) tic("Total")
+if (should_log) {
+    tic("Total")
+    print("Starting simulation study I")
+}
 
 number_of_clusters <- ifelse(
     is.na(number_of_clusters),
@@ -160,8 +161,6 @@ for (current_condition in seq_len(nrow(conditions))) {
             lr_ari = lr_ari
         ))
     }
-
-    if (should_log) toc()
     simulation_1_results <- append_condition_results(
         condition_results = condition_results,
         simulation_results = simulation_1_results,
@@ -171,9 +170,12 @@ for (current_condition in seq_len(nrow(conditions))) {
         with_ari_and_rmse = TRUE,
         simulation_count = simulation_count
     )
+    if (should_log) toc()
 }
 if (should_log) toc()
 ## Total: 4043.519 sec elapsed iteration_count == 4
+simulation_1_results <- set_row_names(simulation_1_results, conditions)
+
 save(simulation_1_results, file = "Simulation_Study_I.RData")
 
 ## MARK: - Simulation Studie 2
@@ -192,7 +194,10 @@ conditions <- expand.grid(
 )
 
 simulation_2_results <- vector(mode = "list")
-if (should_log) tic("Total")
+if (should_log) {
+    tic("Total")
+    print("Starting simulation study II")
+}
 
 for (current_condition in seq_len(nrow(conditions))) {
     condition_results <- vector(mode = "list")
@@ -239,4 +244,5 @@ for (current_condition in seq_len(nrow(conditions))) {
     )
 }
 if (should_log) toc() ## 1484.347 sec elapsed
+simulation_2_results <- set_row_names(simulation_1_results, conditions)
 save(simulation_2_results, file = "Simulation_Study_II.RData")

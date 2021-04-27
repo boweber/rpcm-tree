@@ -1,6 +1,3 @@
-
-## MARK: - Simulation
-
 single_case_simulation <- function(with_dif = TRUE,
                                    use_binary = TRUE,
                                    sample_size = 300,
@@ -234,6 +231,8 @@ append_condition_results <- function(condition_results,
         simulation_count
     )
 
+    ## Time
+
     simulation_results$rpcmtree_time[condition_index] <- mean(
         condition_results$rpcmtree_time
     )
@@ -241,6 +240,24 @@ append_condition_results <- function(condition_results,
     simulation_results$lr_time[condition_index] <- mean(
         condition_results$lr_time
     )
+
+    simulation_results$rpcmtree_time_min[condition_index] <- min(
+        condition_results$rpcmtree_time
+    )
+
+    simulation_results$lr_time_min[condition_index] <- min(
+        condition_results$lr_time
+    )
+
+    simulation_results$rpcmtree_time_max[condition_index] <- max(
+        condition_results$rpcmtree_time
+    )
+
+    simulation_results$lr_time_max[condition_index] <- max(
+        condition_results$lr_time
+    )
+
+    ## RMSE & ARI
 
     if (conditions[condition_index, ]$dif && with_ari_and_rmse) {
         simulation_results$rpcm_rmse[condition_index] <- rmse(
@@ -250,13 +267,38 @@ append_condition_results <- function(condition_results,
         simulation_results$glmer_rmse[condition_index] <- rmse(
             condition_results$lr_difference
         )
-        if (is.vector(condition_results$rpcm_aris)) {
-            simulation_results$rpcm_aris[condition_index] <-
-                mean(condition_results$rpcmtree_ari, na.rm = TRUE)
+        simulation_results$rpcm_aris[condition_index] <-
+            mean(condition_results$rpcmtree_ari, na.rm = TRUE)
 
-            simulation_results$glmer_aris[condition_index] <-
-                mean(condition_results$lr_ari, na.rm = TRUE)
-        }
+        simulation_results$glmer_aris[condition_index] <-
+            mean(condition_results$lr_ari, na.rm = TRUE)
     }
+    return(simulation_results)
+}
+
+set_row_names <- function(simulation_results, conditions) {
+    simulation_results <- as.data.frame(simulation_results)
+
+    get_row_name <- function(condition_row) {
+        paste(
+            "DIF:", condition_row["dif"] == 1,
+            "BINARY:", if (is.na(condition_row["binary"])) {
+                TRUE
+            } else {
+                condition_row["binary"] == 1
+            },
+            "CUTPOINT:", if (is.na(condition_row["cutpoint"])) {
+                0.5
+            } else {
+                condition_row["cutpoint"]
+            },
+            "ABILITY:", if (is.na(condition_row["ability"])) {
+                0
+            } else {
+                condition_row["ability"]
+            }
+        )
+    }
+    row.names(simulation_results) <- apply(conditions, 1, get_row_name)
     return(simulation_results)
 }
