@@ -125,8 +125,8 @@ single_case_simulation <- function(with_dif = TRUE,
         rpcm_tree = rpcm_tree_result,
         rpcmtree_did_find_dif = rpcmtree_did_find_dif,
         lr_did_find_dif = lr_did_find_dif,
-        rpcmtree_rmse = rpcmtree_rmse,
-        glmer_rmse = glmer_rmse,
+        rpcm_difference = rpcmtree_rmse,
+        lr_difference = glmer_rmse,
         rpcmtree_time = rpcmtree_time,
         lr_time = glmer_time
     ))
@@ -134,6 +134,17 @@ single_case_simulation <- function(with_dif = TRUE,
 
 ## http://adv-r.had.co.nz/Exceptions-Debugging.html
 is.error <- function(x) inherits(x, "try-error")
+
+## Type 1 error rate:
+##  the simulation study was conducted with no DIF.
+##  the results for item 3 with no DIF was used to obtain the error rate.
+##  % of significant test results (delta == 0)
+
+## Type 2 error rate:
+##  - the item included a prespecified difference between the focal and
+##    the reference group.
+##  - differences to detect their impacts
+##  % of significant test results (delta == 1.5)
 
 compute_error_rate <- function(dif_observations,
                                with_dif,
@@ -170,34 +181,82 @@ log_condition_results <- function(condition_results) {
     print("* Condition results:")
     print(paste(
         "   - rpcm dif detections:",
-        toString(condition_results$rpcm_dif_detections)
+        toString(condition_results$rpcmtree_did_find_dif)
     ))
     print(paste(
         "   - lr test dif detections:",
-        toString(condition_results$glmer_dif_detections)
+        toString(condition_results$lr_did_find_dif)
     ))
     print(paste(
         "   - rpcm computation times:",
-        toString(condition_results$rpcmtree_times)
+        toString(condition_results$rpcmtree_time)
     ))
     print(paste(
         "   - lr test computation times:",
-        toString(condition_results$lr_times)
+        toString(condition_results$lr_time)
     ))
     print(paste(
         "   - rpcm estimate difference:",
-        toString(condition_results$rpcm_differences)
+        toString(condition_results$rpcmtree_difference)
     ))
     print(paste(
         "   - glmer estimate difference:",
-        toString(condition_results$glmer_differences)
+        toString(condition_results$lr_difference)
     ))
     print(paste(
         "   - rpcm aris:",
-        toString(condition_results$rpcm_aris)
+        toString(condition_results$rpcmtree_ari)
     ))
     print(paste(
         "   - glmer aris:",
-        toString(condition_results$glmer_aris)
+        toString(condition_results$lr_ari)
     ))
+}
+
+append_condition_results <- function(condition_results,
+                                     simulation_results,
+                                     condition_index,
+                                     conditions,
+                                     should_log,
+                                     with_ari_and_rmse,
+                                     simulation_count) {
+    if (should_log) log_condition_results(condition_results)
+
+    simulation_results$rpcm_error_rate[condition_index] <- compute_error_rate(
+        condition_results$rpcmtree_did_find_dif,
+        conditions[condition_index, ]$dif,
+        simulation_count
+    )
+
+    simulation_results$glmer_error_rate[condition_index] <- compute_error_rate(
+        condition_results$lr_did_find_dif,
+        conditions[condition_index, ]$dif,
+        simulation_count
+    )
+
+    simulation_results$rpcmtree_time[condition_index] <- mean(
+        condition_results$rpcmtree_time
+    )
+
+    simulation_results$lr_time[condition_index] <- mean(
+        condition_results$lr_time
+    )
+
+    if (conditions[condition_index, ]$dif && with_ari_and_rmse) {
+        simulation_results$rpcm_rmse[condition_index] <- rmse(
+            condition_results$rpcmtree_difference
+        )
+
+        simulation_results$glmer_rmse[condition_index] <- rmse(
+            condition_results$lr_difference
+        )
+        if (is.vector(condition_results$rpcm_aris)) {
+            simulation_results$rpcm_aris[condition_index] <-
+                mean(condition_results$rpcmtree_ari, na.rm = TRUE)
+
+            simulation_results$glmer_aris[condition_index] <-
+                mean(condition_results$lr_ari, na.rm = TRUE)
+        }
+    }
+    return(simulation_results)
 }
