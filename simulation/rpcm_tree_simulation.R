@@ -1,20 +1,19 @@
 ## MARK: - Install and load required libraries
 
-if (!require("devtools")) install.packages("devtools")
-if (!require("rpcmtree")) {
-    devtools::install_github("boweber/rpcm-tree", dependencies = TRUE)
-}
-library("rpcmtree")
-library("partykit") ## mob
-library("lme4") ## glmer
-library("mclust") ## adjustedRandIndex
-library("tidyverse") ## str_sort
-library("effects") ## effect
-library("merDeriv") ## estfun.glmerMod
-library("tictoc") ## tic toc
-## parallelisation
-library("doParallel")
-library("doRNG")
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    "partykit", ## mob
+    "lme4", ## glmer
+    "mclust", ## adjustedRandIndex
+    "tidyverse", ## str_sort
+    "effects", ## effect
+    "merDeriv", ## estfun.glmerMod
+    "tictoc", ## tic toc
+    "doParallel", ## parallelisation
+    "doRNG"
+)
+pacman::p_install_gh("boweber/rpcm-tree", dependencies = TRUE)
+
 
 ## MARK: - Prepare simulation
 
