@@ -264,11 +264,13 @@ append_condition_results <- function(condition_results,
         simulation_results$glmer_rmse[condition_index] <- rmse(
             condition_results$lr_difference
         )
-        simulation_results$rpcm_aris[condition_index] <-
-            mean(condition_results$rpcmtree_ari, na.rm = TRUE)
+        if (!conditions[condition_index, ]$binary) {
+            simulation_results$rpcm_aris[condition_index] <-
+                mean(condition_results$rpcmtree_ari, na.rm = TRUE)
 
-        simulation_results$glmer_aris[condition_index] <-
-            mean(condition_results$lr_ari, na.rm = TRUE)
+            simulation_results$glmer_aris[condition_index] <-
+                mean(condition_results$lr_ari, na.rm = TRUE)
+        }
     }
     return(simulation_results)
 }

@@ -1,7 +1,9 @@
 ## MARK: - Install and load required libraries
 
 if (!require("devtools")) install.packages("devtools")
-if (!require("rpcmtree")) devtools::install_github("boweber/rpcm-tree")
+if (!require("rpcmtree")) {
+    devtools::install_github("boweber/rpcm-tree", dependencies = TRUE)
+}
 library("rpcmtree")
 library("partykit") ## mob
 library("lme4") ## glmer
@@ -19,22 +21,22 @@ library("doRNG")
 should_log <- TRUE
 use_glmer <- TRUE
 alpha_niveau <- 0.05
-number_of_clusters <- 2 # NA
+number_of_clusters <- NA
 fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
 
 ### loads helper and data generation functions
-source("simulation/rpcm_tree_simulation+data_generation.R")
-source("simulation/rpcm_tree_simulation+rmse.R")
-source("simulation/rpcm_tree_simulation+ari.R")
-source("simulation/rpcm_tree_simulation+utilities.R")
-simulation_count <- 2
-sample_size <- 400
+source("rpcm_tree_simulation+data_generation.R")
+source("rpcm_tree_simulation+rmse.R")
+source("rpcm_tree_simulation+ari.R")
+source("rpcm_tree_simulation+utilities.R")
+simulation_count <- 121
+sample_size <- 502
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
 lr_cutpoint <- 0.5
 ## item_3_delta == item difficulty difference between focal and reference group
 ## only present when dif is simulated
-item_3_delta <- 0.35
+item_3_delta <- 0.25
 
 ## Experimental settings:
 
@@ -250,3 +252,4 @@ for (current_condition in seq_len(nrow(conditions))) {
 if (should_log) toc() ## 1484.347 sec elapsed
 simulation_2_results <- set_row_names(simulation_2_results, conditions)
 save(simulation_2_results, file = "Simulation_Study_II.RData")
+parallel::stopCluster(cluster)
