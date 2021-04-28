@@ -12,7 +12,7 @@ pacman::p_load(
     "doParallel", ## parallelisation
     "doRNG"
 )
-pacman::p_install_gh("boweber/rpcm-tree", dependencies = TRUE)
+pacman::p_install_gh("boweber/rpcm-tree@main", dependencies = TRUE)
 
 
 ## MARK: - Prepare simulation
