@@ -1,41 +1,37 @@
 ## MARK: - Install and load required libraries
+library("doParallel")
 
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(
-    "partykit", ## mob
-    "lme4", ## glmer
-    "mclust", ## adjustedRandIndex
-    "tidyverse", ## str_sort
-    "effects", ## effect
-    "merDeriv", ## estfun.glmerMod
-    "tictoc", ## tic toc
-    "doParallel", ## parallelisation
-    "doRNG"
-)
-pacman::p_install_gh("boweber/rpcm-tree@main", dependencies = TRUE)
-
-
+file_path <- function(file_name, is_ouput = FALSE) {
+    if (is_ouput) {
+        return(file.path("/opt/ml/processing/output", file_name))
+    } else {
+        return(file.path("simulation-files", file_name))
+    }
+}
 ## MARK: - Prepare simulation
+
+source(file_path("rpcm_tree_simulation+rpcmtree.R"))
+source(file_path("rpcm_tree_simulation+data_generation.R"))
+source(file_path("rpcm_tree_simulation+rmse.R"))
+source(file_path("rpcm_tree_simulation+ari.R"))
+source(file_path("rpcm_tree_simulation+utilities.R"))
 
 should_log <- TRUE
 use_glmer <- TRUE
 alpha_niveau <- 0.05
 number_of_clusters <- NA
-fitting_function <- if (use_glmer) rpcmtree::glmer_fit else rpcmtree::rpcm_fit
+fitting_function <- if (use_glmer) glmer_fit else rpcm_fit
 
 ### loads helper and data generation functions
-source("rpcm_tree_simulation+data_generation.R")
-source("rpcm_tree_simulation+rmse.R")
-source("rpcm_tree_simulation+ari.R")
-source("rpcm_tree_simulation+utilities.R")
-simulation_count <- 121
+
+simulation_count <- 501
 sample_size <- 502
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
 lr_cutpoint <- 0.5
 ## item_3_delta == item difficulty difference between focal and reference group
 ## only present when dif is simulated
-item_3_delta <- 0.25
+item_3_delta <- 0.23
 
 ## Experimental settings:
 
@@ -179,7 +175,6 @@ for (current_condition in seq_len(nrow(conditions))) {
 if (should_log) toc()
 ## Total: 4043.519 sec elapsed iteration_count == 4
 simulation_1_results <- set_row_names(simulation_1_results, conditions)
-save(simulation_1_results, file = "Simulation_Study_I.RData")
 
 ## MARK: - Simulation Studie 2
 
@@ -250,5 +245,11 @@ for (current_condition in seq_len(nrow(conditions))) {
 }
 if (should_log) toc() ## 1484.347 sec elapsed
 simulation_2_results <- set_row_names(simulation_2_results, conditions)
-save(simulation_2_results, file = "Simulation_Study_II.RData")
+
+simulation_results <- list(
+    study_1 = simulation_1_results,
+    study_2 = simulation_2_results
+)
+
+save(simulation_results, file = file_path("Simulation_Results.RData", TRUE))
 parallel::stopCluster(cluster)

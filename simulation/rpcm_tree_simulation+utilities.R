@@ -1,7 +1,7 @@
 single_case_simulation <- function(with_dif = TRUE,
                                    use_binary = TRUE,
                                    sample_size = 300,
-                                   fitting_function = rpcmtree::glmer_fit,
+                                   fitting_function = glmer_fit,
                                    alpha_niveau = 0.05,
                                    item_3_delta = 1,
                                    ability_difference = 0,
@@ -39,7 +39,7 @@ single_case_simulation <- function(with_dif = TRUE,
 
     if (!skip_rpcm) {
         start_time <- Sys.time()
-        rpcm_tree_result <- try(rpcmtree::rpcm_tree(
+        rpcm_tree_result <- try(rpcm_tree(
             observations ~ covariate,
             data = test_data,
             fitting_func = fitting_function,
