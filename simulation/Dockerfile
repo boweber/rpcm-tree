@@ -9,6 +9,9 @@ RUN install2.r --error \
     merDeriv \
     tictoc \
     doParallel \
-    doRNG
+    doRNG \
+    tidyr \
+    dplyr \
+    mclust
 
 CMD Rscript /simulation-files/rpcm_tree_simulation.R
