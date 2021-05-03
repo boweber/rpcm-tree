@@ -24,7 +24,7 @@ fitting_function <- if (use_glmer) glmer_fit else rpcm_fit
 
 ### loads helper and data generation functions
 
-simulation_count <- 501
+simulation_count <- 721
 sample_size <- 502
 ## the cutpoint of the LR-Test
 ## Here 0.5 == median
@@ -92,7 +92,7 @@ conditions <- rbind(
 
 simulation_1_results <- vector(mode = "list")
 if (should_log) {
-    tic("Total")
+    tictoc::tic("Total")
     print("Starting simulation study I")
 }
 
@@ -113,7 +113,7 @@ for (current_condition in seq_len(nrow(conditions))) {
         log_current_condition(
             conditions[current_condition, ]
         )
-        tic(paste("condition number", toString(current_condition)))
+        tictoc::tic(paste("condition number", toString(current_condition)))
     }
     condition_results <- foreach::foreach(
         iteration_number = seq_len(simulation_count),
@@ -160,7 +160,7 @@ for (current_condition in seq_len(nrow(conditions))) {
     }
     if (should_log) {
         log_condition_results(condition_results)
-        toc()
+        tictoc::toc()
     }
 
     simulation_1_results <- append_condition_results(
@@ -172,7 +172,7 @@ for (current_condition in seq_len(nrow(conditions))) {
         simulation_count = simulation_count
     )
 }
-if (should_log) toc()
+if (should_log) tictoc::toc()
 ## Total: 4043.519 sec elapsed iteration_count == 4
 simulation_1_results <- set_row_names(simulation_1_results, conditions)
 
@@ -193,7 +193,7 @@ conditions <- expand.grid(
 
 simulation_2_results <- vector(mode = "list")
 if (should_log) {
-    tic("Total")
+    tictoc::tic("Total")
     print("Starting simulation study II")
 }
 
@@ -204,7 +204,7 @@ for (current_condition in seq_len(nrow(conditions))) {
         log_current_condition(
             conditions[current_condition, ]
         )
-        tic(paste("condition number", toString(current_condition)))
+        tictoc::tic(paste("condition number", toString(current_condition)))
     }
     condition_results <- foreach::foreach(
         iteration_number = seq_len(simulation_count),
@@ -232,7 +232,7 @@ for (current_condition in seq_len(nrow(conditions))) {
     }
     if (should_log) {
         log_condition_results(condition_results)
-        toc()
+        tictoc::toc()
     }
     simulation_2_results <- append_condition_results(
         condition_results = condition_results,
@@ -243,7 +243,7 @@ for (current_condition in seq_len(nrow(conditions))) {
         simulation_count = simulation_count
     )
 }
-if (should_log) toc() ## 1484.347 sec elapsed
+if (should_log) tictoc::toc() ## 1484.347 sec elapsed
 simulation_2_results <- set_row_names(simulation_2_results, conditions)
 
 simulation_results <- list(
