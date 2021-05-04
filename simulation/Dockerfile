@@ -12,6 +12,8 @@ RUN install2.r --error \
     doRNG \
     tidyr \
     dplyr \
-    mclust
+    mclust \
+    optparse
 
-CMD Rscript /simulation-files/rpcm_tree_simulation.R
+WORKDIR /simulation-files
+CMD ["Rscript","rpcm_tree_simulation.R"]

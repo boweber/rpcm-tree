@@ -23,60 +23,39 @@ argument_list <- list(
         help = "Logs the current state of the simulation [default]"
     ),
     optparse::make_option(
-        c("-g", "--use_glmer"),
-        action = "store",
-        type = "logical",
-        default = TRUE,
-        help = "Uses glmer as a fitting function [default]"
-    ),
-    optparse::make_option(
         c("-a", "--alpha_niveau"),
         action = "store",
         type = "double",
         default = 0.05,
-        help = "Uses glmer as a fitting function [default %default]"
-    ),
-    optparse::make_option(
-        c("-c", "--number_of_clusters"),
-        action = "store",
-        type = "integer",
-        default = NULL,
-        help = "Specify the number of clusters [default all available cores]"
+        help = "Specifies the alpha niveau [default %default]"
     ),
     optparse::make_option(
         c("-r", "--number_of_repetitions"),
         action = "store",
         type = "integer",
         default = 500,
-        help = "Specify the number of repetitions [default %default]"
+        help = "Specifies the number of repetitions [default %default]"
     ),
     optparse::make_option(
         c("-s", "--sample_size"),
         action = "store",
         type = "integer",
         default = 500,
-        help = "Specify the sample size [default %default]"
+        help = "Specifies the sample size [default %default]"
     ),
     optparse::make_option(
         c("-d", "--item_3_delta"),
         action = "store",
         type = "double",
         default = 0.23,
-        help = "Specify the difficulty difference for item 3 delta in case of DIF [default %default]"
-    ),
-    optparse::make_option(
-        c("-p", "--lr_cutpoint"),
-        action = "store",
-        type = "double",
-        default = 0.5,
-        help = "Specify the cutpoint for the lr test [default %default]"
+        help = "Specifies the difficulty difference for item 3 delta in case of DIF [default %default]"
     ),
     optparse::make_option(
         c("--output_file_path"),
         action = "store",
         type = "character",
         default = ".",
-        help = "Specify the output file path [default %default]"
+        help = "Specifies the output file path [default %default]"
     )
 )
 
@@ -100,10 +79,8 @@ source("rpcm_tree_simulation+utilities.R")
 
 should_log <- options$should_log
 alpha_niveau <- options$alpha_niveau
-fitting_function <- if (options$use_glmer) glmer_fit else rpcm_fit
 simulation_count <- options$number_of_repetitions
 sample_size <- options$sample_size
-lr_cutpoint <- options$lr_cutpoint
 ## item_3_delta == item difficulty difference
 ## between focal and reference group
 ## only present when dif is simulated
@@ -111,11 +88,7 @@ item_3_delta <- options$item_3_delta
 
 ## MARK. - Setup parallelisation
 
-number_of_clusters <- ifelse(
-    is.na(options$number_of_clusters),
-    parallel::detectCores() - 1,
-    options$number_of_clusters
-)
+number_of_clusters <- parallel::detectCores()
 cluster <- parallel::makeCluster(number_of_clusters)
 doParallel::registerDoParallel(cluster)
 doRNG::registerDoRNG(17)
@@ -170,7 +143,7 @@ if (options$run_simulation_study_1) {
                 with_dif = conditions[current_condition, ]$dif,
                 use_binary = conditions[current_condition, ]$binary,
                 sample_size = sample_size,
-                fitting_function = fitting_function,
+                fitting_function = glmer_fit,
                 alpha_niveau = alpha_niveau,
                 item_3_delta = item_3_delta,
                 ability_difference = 0,
@@ -185,7 +158,7 @@ if (options$run_simulation_study_1) {
                 ari_results <- adjusted_rand_index(
                     single_case_result$rpcm_tree,
                     conditions[current_condition, ]$cutpoint,
-                    lr_cutpoint,
+                    0.5, # lr cutpoint = median
                     single_case_result$rpcmtree_did_find_dif,
                     single_case_result$lr_did_find_dif
                 )
@@ -260,7 +233,7 @@ if (options$run_simulation_study_2) {
                 with_dif = conditions[current_condition, ]$dif,
                 use_binary = TRUE,
                 sample_size = sample_size,
-                fitting_function = fitting_function,
+                fitting_function = glmer_fit,
                 alpha_niveau = alpha_niveau,
                 item_3_delta = item_3_delta,
                 ability_difference = conditions[current_condition, ]$ability,
