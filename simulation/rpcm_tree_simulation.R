@@ -1,255 +1,306 @@
-## MARK: - Install and load required libraries
-library("doParallel")
+## MARK. - Load input parameters
 
-file_path <- function(file_name, is_ouput = FALSE) {
-    if (is_ouput) {
-        return(file.path("/opt/ml/processing/output", file_name))
-    } else {
-        return(file.path("simulation-files", file_name))
-    }
-}
-## MARK: - Prepare simulation
-
-source(file_path("rpcm_tree_simulation+rpcmtree.R"))
-source(file_path("rpcm_tree_simulation+data_generation.R"))
-source(file_path("rpcm_tree_simulation+rmse.R"))
-source(file_path("rpcm_tree_simulation+ari.R"))
-source(file_path("rpcm_tree_simulation+utilities.R"))
-
-should_log <- TRUE
-use_glmer <- TRUE
-alpha_niveau <- 0.05
-number_of_clusters <- NA
-fitting_function <- if (use_glmer) glmer_fit else rpcm_fit
-
-### loads helper and data generation functions
-
-simulation_count <- 721
-sample_size <- 502
-## the cutpoint of the LR-Test
-## Here 0.5 == median
-lr_cutpoint <- 0.5
-## item_3_delta == item difficulty difference between focal and reference group
-## only present when dif is simulated
-item_3_delta <- 0.23
-
-## Experimental settings:
-
-## Identical for all experiments
-## - number of simulations (simulation_count)
-## - number of items (length(generate_item_parameters()))
-## - number of observations (sample_size)
-##  -> all responses were generated with identical item and person parameters,
-##  -> or with item and person parameters differing between groups
-## - item parameters (generate_item_parameters)
-##  -> arbitraily chosen
-##  -> value delta (0 <= item_3_delta <= 0.35) was added to the third
-##     item parameter (focal group)
-## - person parameters (generate_abilities)
-##  -> reference group: N(0 - d / 2, 1)
-##  -> focal group: N(0 + d / 2, 1)
-##      * -0.5 <= d <= 0.5 (indicates ability difference)
-##      * d == 0 (no ability difference)
-##      * d < 0 DIF & ability disadvantage (focal group)
-##      * d > 0 DIF disatvantages focal while ability difference favors it
-
-
-## MARK: - Simulation Studie 1
-
-
-## Simulation Studie I
-## illustrate performance of RaschTree (RT) and LR-Test (LR)
-## - H_0: no DIF vs H_1: DIF
-## LR:
-## - pre-specified reference/focal in case of numeric covariate
-## - split at median
-## delta == 0 corresponds to H_0
-##  -> all responses are generated with the same item parameters
-## only one covariate (either binary or numeric)
-## Cutpoint location: median
-
-should_simulate_dif <- c(FALSE, TRUE)
-should_be_binary_predictor <- c(FALSE, TRUE)
-
-conditions <- expand.grid(
-    ## a true dif value simulates DIF
-    dif = should_simulate_dif,
-    ## a true binary value uses a binary predictor as a covariate
-    binary = should_be_binary_predictor
-)
-
-## 0.5 is just relevant for dif == TRUE & binary == FALSE
-conditions$cutpoint <- rep(0.5, nrow(conditions))
-
-conditions <- rbind(
-    conditions,
-    data.frame(
-        dif = TRUE,
-        binary = FALSE,
-        cutpoint = 0.25
+argument_list <- list(
+    optparse::make_option(
+        c("--run_simulation_study_1"),
+        action = "store",
+        type = "logical",
+        default = TRUE,
+        help = "Runs simulation study 1 [default]"
+    ),
+    optparse::make_option(
+        c("--run_simulation_study_2"),
+        action = "store",
+        type = "logical",
+        default = TRUE,
+        help = "Runs simulation study 2 [default]"
+    ),
+    optparse::make_option(
+        c("-l", "--should_log"),
+        action = "store",
+        type = "logical",
+        default = TRUE,
+        help = "Logs the current state of the simulation [default]"
+    ),
+    optparse::make_option(
+        c("-g", "--use_glmer"),
+        action = "store",
+        type = "logical",
+        default = TRUE,
+        help = "Uses glmer as a fitting function [default]"
+    ),
+    optparse::make_option(
+        c("-a", "--alpha_niveau"),
+        action = "store",
+        type = "double",
+        default = 0.05,
+        help = "Uses glmer as a fitting function [default %default]"
+    ),
+    optparse::make_option(
+        c("-c", "--number_of_clusters"),
+        action = "store",
+        type = "integer",
+        default = NULL,
+        help = "Specify the number of clusters [default all available cores]"
+    ),
+    optparse::make_option(
+        c("-r", "--number_of_repetitions"),
+        action = "store",
+        type = "integer",
+        default = 500,
+        help = "Specify the number of repetitions [default %default]"
+    ),
+    optparse::make_option(
+        c("-s", "--sample_size"),
+        action = "store",
+        type = "integer",
+        default = 500,
+        help = "Specify the sample size [default %default]"
+    ),
+    optparse::make_option(
+        c("-d", "--item_3_delta"),
+        action = "store",
+        type = "double",
+        default = 0.23,
+        help = "Specify the difficulty difference for item 3 delta in case of DIF [default %default]"
+    ),
+    optparse::make_option(
+        c("-p", "--lr_cutpoint"),
+        action = "store",
+        type = "double",
+        default = 0.5,
+        help = "Specify the cutpoint for the lr test [default %default]"
+    ),
+    optparse::make_option(
+        c("--output_file_path"),
+        action = "store",
+        type = "character",
+        default = ".",
+        help = "Specify the output file path [default %default]"
     )
 )
 
-simulation_1_results <- vector(mode = "list")
-if (should_log) {
-    tictoc::tic("Total")
-    print("Starting simulation study I")
-}
+options <- optparse::parse_args(
+    optparse::OptionParser(
+        usage = "%prog [options] file",
+        option_list = argument_list
+    ),
+    positional_arguments = TRUE
+)$options
+
+## MARK: - Prepare workspace
+
+library("doParallel")
+
+source("rpcm_tree_simulation+rpcmtree.R")
+source("rpcm_tree_simulation+data_generation.R")
+source("rpcm_tree_simulation+rmse.R")
+source("rpcm_tree_simulation+ari.R")
+source("rpcm_tree_simulation+utilities.R")
+
+should_log <- options$should_log
+alpha_niveau <- options$alpha_niveau
+fitting_function <- if (options$use_glmer) glmer_fit else rpcm_fit
+simulation_count <- options$number_of_repetitions
+sample_size <- options$sample_size
+lr_cutpoint <- options$lr_cutpoint
+## item_3_delta == item difficulty difference
+## between focal and reference group
+## only present when dif is simulated
+item_3_delta <- options$item_3_delta
+
+## MARK. - Setup parallelisation
 
 number_of_clusters <- ifelse(
-    is.na(number_of_clusters),
+    is.na(options$number_of_clusters),
     parallel::detectCores() - 1,
-    number_of_clusters
+    options$number_of_clusters
 )
 cluster <- parallel::makeCluster(number_of_clusters)
 doParallel::registerDoParallel(cluster)
 doRNG::registerDoRNG(17)
 
-for (current_condition in seq_len(nrow(conditions))) {
-    ## debugging tool: Skip conditions
-    if (any(c() == current_condition)) next
+## MARK: - Simulation Studie 1
+
+if (options$run_simulation_study_1) {
+    should_simulate_dif <- c(FALSE, TRUE)
+    should_be_binary_predictor <- c(FALSE, TRUE)
+
+    conditions <- expand.grid(
+        ## a true dif value simulates DIF
+        dif = should_simulate_dif,
+        ## a true binary value uses a binary predictor as a covariate
+        binary = should_be_binary_predictor
+    )
+
+    ## 0.5 is just relevant for dif == TRUE & binary == FALSE
+    conditions$cutpoint <- rep(0.5, nrow(conditions))
+
+    conditions <- rbind(
+        conditions,
+        data.frame(
+            dif = TRUE,
+            binary = FALSE,
+            cutpoint = 0.25
+        )
+    )
 
     if (should_log) {
-        log_current_condition(
-            conditions[current_condition, ]
-        )
-        tictoc::tic(paste("condition number", toString(current_condition)))
+        tictoc::tic("Total")
+        print("Starting simulation study I")
     }
-    condition_results <- foreach::foreach(
-        iteration_number = seq_len(simulation_count),
-        .combine = "rbind"
-    ) %dopar% {
-        library("partykit")
-        single_case_result <- single_case_simulation(
-            with_dif = conditions[current_condition, ]$dif,
-            use_binary = conditions[current_condition, ]$binary,
-            sample_size = sample_size,
-            fitting_function = fitting_function,
-            alpha_niveau = alpha_niveau,
-            item_3_delta = item_3_delta,
-            ability_difference = 0,
-            numeric_cutpoint = conditions[current_condition, ]$cutpoint,
-            calculate_rmse = conditions[current_condition, ]$dif
-        )
-        tree_ari <- NA
-        lr_ari <- NA
-        if (conditions[current_condition, ]$dif &&
-            !conditions[current_condition, ]$binary &&
-            !is.error(single_case_result$rpcm_tree)) {
-            ari_results <- adjusted_rand_index(
-                single_case_result$rpcm_tree,
-                conditions[current_condition, ]$cutpoint,
-                lr_cutpoint,
-                single_case_result$rpcmtree_did_find_dif,
-                single_case_result$lr_did_find_dif
+
+    simulation_1_results <- vector(mode = "list")
+    for (current_condition in seq_len(nrow(conditions))) {
+        ## debugging tool: Skip conditions
+        if (any(c() == current_condition)) next
+
+        if (should_log) {
+            log_current_condition(
+                conditions[current_condition, ]
             )
-            tree_ari <- ari_results$tree_ari
-            lr_ari <- ari_results$glmer_ari
+            tictoc::tic(paste("condition number", toString(current_condition)))
+        }
+        condition_results <- foreach::foreach(
+            iteration_number = seq_len(simulation_count),
+            .combine = "rbind"
+        ) %dopar% {
+            library("partykit")
+            single_case_result <- single_case_simulation(
+                with_dif = conditions[current_condition, ]$dif,
+                use_binary = conditions[current_condition, ]$binary,
+                sample_size = sample_size,
+                fitting_function = fitting_function,
+                alpha_niveau = alpha_niveau,
+                item_3_delta = item_3_delta,
+                ability_difference = 0,
+                numeric_cutpoint = conditions[current_condition, ]$cutpoint,
+                calculate_rmse = conditions[current_condition, ]$dif
+            )
+            tree_ari <- NA
+            lr_ari <- NA
+            if (conditions[current_condition, ]$dif &&
+                !conditions[current_condition, ]$binary &&
+                !is.error(single_case_result$rpcm_tree)) {
+                ari_results <- adjusted_rand_index(
+                    single_case_result$rpcm_tree,
+                    conditions[current_condition, ]$cutpoint,
+                    lr_cutpoint,
+                    single_case_result$rpcmtree_did_find_dif,
+                    single_case_result$lr_did_find_dif
+                )
+                tree_ari <- ari_results$tree_ari
+                lr_ari <- ari_results$glmer_ari
+            }
+
+            return(data.frame(
+                rpcmtree_did_find_dif = single_case_result$rpcmtree_did_find_dif,
+                lr_did_find_dif = single_case_result$lr_did_find_dif,
+                rpcmtree_difference = single_case_result$rpcm_difference,
+                lr_difference = single_case_result$lr_difference,
+                rpcmtree_time = single_case_result$rpcmtree_time,
+                lr_time = single_case_result$lr_time,
+                rpcmtree_ari = tree_ari,
+                lr_ari = lr_ari
+            ))
+        }
+        if (should_log) {
+            log_condition_results(condition_results)
+            tictoc::toc()
         }
 
-        return(data.frame(
-            rpcmtree_did_find_dif = single_case_result$rpcmtree_did_find_dif,
-            lr_did_find_dif = single_case_result$lr_did_find_dif,
-            rpcmtree_difference = single_case_result$rpcm_difference,
-            lr_difference = single_case_result$lr_difference,
-            rpcmtree_time = single_case_result$rpcmtree_time,
-            lr_time = single_case_result$lr_time,
-            rpcmtree_ari = tree_ari,
-            lr_ari = lr_ari
-        ))
+        simulation_1_results <- append_condition_results(
+            condition_results = condition_results,
+            simulation_results = simulation_1_results,
+            condition_index = current_condition,
+            conditions = conditions,
+            with_ari_and_rmse = TRUE,
+            simulation_count = simulation_count
+        )
     }
-    if (should_log) {
-        log_condition_results(condition_results)
-        tictoc::toc()
-    }
-
-    simulation_1_results <- append_condition_results(
-        condition_results = condition_results,
-        simulation_results = simulation_1_results,
-        condition_index = current_condition,
-        conditions = conditions,
-        with_ari_and_rmse = TRUE,
-        simulation_count = simulation_count
-    )
+    if (should_log) tictoc::toc()
+    simulation_1_results <- set_row_names(simulation_1_results, conditions)
+} else {
+    simulation_1_results <- NA
 }
-if (should_log) tictoc::toc()
-## Total: 4043.519 sec elapsed iteration_count == 4
-simulation_1_results <- set_row_names(simulation_1_results, conditions)
 
 ## MARK: - Simulation Studie 2
 
-## illustrate the effect of a true ability difference between
-## reference and focal group on the type I error rate
-## and power of the LR test and Rasch tree
+if (options$run_simulation_study_2) {
+    ability_differences <- c(-0.5, 0.5)
+    should_simulate_dif <- c(FALSE, TRUE)
 
-ability_differences <- c(-0.5, 0.5)
-
-conditions <- expand.grid(
-    ## a true dif value simulates DIF
-    dif = should_simulate_dif,
-    ## a value to generate a difference in ability between focal and reference
-    ability = ability_differences
-)
-
-simulation_2_results <- vector(mode = "list")
-if (should_log) {
-    tictoc::tic("Total")
-    print("Starting simulation study II")
-}
-
-for (current_condition in seq_len(nrow(conditions))) {
-    condition_results <- vector(mode = "list")
-
-    if (should_log) {
-        log_current_condition(
-            conditions[current_condition, ]
-        )
-        tictoc::tic(paste("condition number", toString(current_condition)))
-    }
-    condition_results <- foreach::foreach(
-        iteration_number = seq_len(simulation_count),
-        .combine = "rbind"
-    ) %dopar% {
-        library("partykit") ## necessary for mob function
-        single_case_result <- single_case_simulation(
-            with_dif = conditions[current_condition, ]$dif,
-            use_binary = TRUE,
-            sample_size = sample_size,
-            fitting_function = fitting_function,
-            alpha_niveau = alpha_niveau,
-            item_3_delta = item_3_delta,
-            ability_difference = conditions[current_condition, ]$ability,
-            ## Just a dummy: Irrelevant in this simulation study
-            numeric_cutpoint = 0.5,
-            calculate_rmse = FALSE
-        )
-        return(data.frame(
-            rpcmtree_did_find_dif = single_case_result$rpcmtree_did_find_dif,
-            lr_did_find_dif = single_case_result$lr_did_find_dif,
-            rpcmtree_time = single_case_result$rpcmtree_time,
-            lr_time = single_case_result$lr_time
-        ))
-    }
-    if (should_log) {
-        log_condition_results(condition_results)
-        tictoc::toc()
-    }
-    simulation_2_results <- append_condition_results(
-        condition_results = condition_results,
-        simulation_results = simulation_2_results,
-        condition_index = current_condition,
-        conditions = conditions,
-        with_ari_and_rmse = FALSE,
-        simulation_count = simulation_count
+    conditions <- expand.grid(
+        ## a true dif value simulates DIF
+        dif = should_simulate_dif,
+        ## a value to generate a difference in ability between focal and reference
+        ability = ability_differences
     )
+
+    if (should_log) {
+        tictoc::tic("Total")
+        print("Starting simulation study II")
+    }
+    simulation_2_results <- vector(mode = "list")
+    for (current_condition in seq_len(nrow(conditions))) {
+        condition_results <- vector(mode = "list")
+
+        if (should_log) {
+            log_current_condition(
+                conditions[current_condition, ]
+            )
+            tictoc::tic(paste("condition number", toString(current_condition)))
+        }
+        condition_results <- foreach::foreach(
+            iteration_number = seq_len(simulation_count),
+            .combine = "rbind"
+        ) %dopar% {
+            library("partykit") ## necessary for mob function
+            single_case_result <- single_case_simulation(
+                with_dif = conditions[current_condition, ]$dif,
+                use_binary = TRUE,
+                sample_size = sample_size,
+                fitting_function = fitting_function,
+                alpha_niveau = alpha_niveau,
+                item_3_delta = item_3_delta,
+                ability_difference = conditions[current_condition, ]$ability,
+                ## Just a dummy: Irrelevant in this simulation study
+                numeric_cutpoint = 0.5,
+                calculate_rmse = FALSE
+            )
+            return(data.frame(
+                rpcmtree_did_find_dif = single_case_result$rpcmtree_did_find_dif,
+                lr_did_find_dif = single_case_result$lr_did_find_dif,
+                rpcmtree_time = single_case_result$rpcmtree_time,
+                lr_time = single_case_result$lr_time
+            ))
+        }
+        if (should_log) {
+            log_condition_results(condition_results)
+            tictoc::toc()
+        }
+        simulation_2_results <- append_condition_results(
+            condition_results = condition_results,
+            simulation_results = simulation_2_results,
+            condition_index = current_condition,
+            conditions = conditions,
+            with_ari_and_rmse = FALSE,
+            simulation_count = simulation_count
+        )
+    }
+    if (should_log) tictoc::toc() ## 1484.347 sec elapsed
+    simulation_2_results <- set_row_names(simulation_2_results, conditions)
+} else {
+    simulation_2_results <- NA
 }
-if (should_log) tictoc::toc() ## 1484.347 sec elapsed
-simulation_2_results <- set_row_names(simulation_2_results, conditions)
 
 simulation_results <- list(
     study_1 = simulation_1_results,
     study_2 = simulation_2_results
 )
 
-save(simulation_results, file = file_path("Simulation_Results.RData", TRUE))
+save(
+    simulation_results,
+    file = file.path(options$output_file_path, "Simulation_Results.RData")
+)
 parallel::stopCluster(cluster)
