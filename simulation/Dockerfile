@@ -16,4 +16,4 @@ RUN install2.r --error \
     optparse
 
 WORKDIR /simulation-files
-CMD ["Rscript","rpcm_tree_simulation.R"]
+ENTRYPOINT ["Rscript","rpcm_tree_simulation.R"]

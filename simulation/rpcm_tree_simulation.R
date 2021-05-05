@@ -1,4 +1,4 @@
-## MARK. - Load input parameters
+## MARK: - Load input parameters
 
 argument_list <- list(
     optparse::make_option(
@@ -85,6 +85,13 @@ sample_size <- options$sample_size
 ## between focal and reference group
 ## only present when dif is simulated
 item_3_delta <- options$item_3_delta
+
+if (should_log) {
+    print(paste("alpha niveau is set to", alpha_niveau))
+    print(paste("simulation count is set to", simulation_count))
+    print(paste("sample size is set to", sample_size))
+    print(paste("item 3 delta is set to", item_3_delta))
+}
 
 ## MARK. - Setup parallelisation
 
@@ -194,6 +201,7 @@ if (options$run_simulation_study_1) {
     if (should_log) tictoc::toc()
     simulation_1_results <- set_row_names(simulation_1_results, conditions)
 } else {
+    if (should_log) print("Skipped simulation study I")
     simulation_1_results <- NA
 }
 
@@ -264,6 +272,7 @@ if (options$run_simulation_study_2) {
     if (should_log) tictoc::toc() ## 1484.347 sec elapsed
     simulation_2_results <- set_row_names(simulation_2_results, conditions)
 } else {
+    if (should_log) print("Skipped simulation study II")
     simulation_2_results <- NA
 }
 
