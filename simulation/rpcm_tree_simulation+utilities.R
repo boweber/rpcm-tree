@@ -277,7 +277,6 @@ append_condition_results <- function(condition_results,
 
 set_row_names <- function(simulation_results, conditions) {
     simulation_results <- as.data.frame(simulation_results)
-
     get_row_name <- function(condition_row) {
         paste(
             "DIF:", condition_row["dif"] == 1,
@@ -298,6 +297,10 @@ set_row_names <- function(simulation_results, conditions) {
             }
         )
     }
-    row.names(simulation_results) <- apply(conditions, 1, get_row_name)
+    row.names(simulation_results) <- apply(
+        conditions,
+        1,
+        get_row_name
+    )
     return(simulation_results)
 }

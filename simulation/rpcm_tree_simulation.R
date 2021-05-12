@@ -1,3 +1,29 @@
+## MARK: - Install required dependencies
+
+dependencies <- c(
+    "partykit",
+    "lme4",
+    "stringr",
+    "effects",
+    "merDeriv",
+    "tictoc",
+    "doParallel",
+    "doRNG",
+    "tidyr",
+    "dplyr",
+    "mclust",
+    "optparse"
+)
+
+package_check <- lapply(
+    dependencies,
+    FUN = function(x) {
+        if (!require(x, character.only = TRUE)) {
+            install.packages(x, dependencies = TRUE)
+        }
+    }
+)
+
 ## MARK: - Load input parameters
 
 argument_list <- list(
@@ -33,7 +59,7 @@ argument_list <- list(
         c("-r", "--number_of_repetitions"),
         action = "store",
         type = "integer",
-        default = 500,
+        default = 120,
         help = "Specifies the number of repetitions [default %default]"
     ),
     optparse::make_option(
@@ -47,7 +73,7 @@ argument_list <- list(
         c("-d", "--item_3_delta"),
         action = "store",
         type = "double",
-        default = 0.23,
+        default = 0.24,
         help = "Specifies the difficulty difference for item 3 delta in case of DIF [default %default]"
     ),
     optparse::make_option(
@@ -87,6 +113,18 @@ sample_size <- options$sample_size
 item_3_delta <- options$item_3_delta
 
 if (should_log) {
+    print(paste(
+        "Running simulation study",
+        if (options$run_simulation_study_1) " 1",
+        if (options$run_simulation_study_2) {
+            if (options$run_simulation_study_1) " and 2" else " 2"
+        },
+        sep = ""
+    ))
+    print(paste(
+        "Saving results to",
+        options$output_file_path
+    ))
     print(paste("alpha niveau is set to", alpha_niveau))
     print(paste("simulation count is set to", simulation_count))
     print(paste("sample size is set to", sample_size))
@@ -95,7 +133,7 @@ if (should_log) {
 
 ## MARK. - Setup parallelisation
 
-number_of_clusters <- parallel::detectCores()
+number_of_clusters <- parallel::detectCores() - 1
 cluster <- parallel::makeCluster(number_of_clusters)
 doParallel::registerDoParallel(cluster)
 doRNG::registerDoRNG(17)
@@ -131,9 +169,30 @@ if (options$run_simulation_study_1) {
     }
 
     simulation_1_results <- vector(mode = "list")
+    simulated_conditions <- c()
     for (current_condition in seq_len(nrow(conditions))) {
         ## debugging tool: Skip conditions
-        if (any(c() == current_condition)) next
+        if (any(c() == current_condition)) {
+            print(paste("Skipping condition", current_condition))
+            simulation_1_results$rpcm_error_rate[current_condition] <- NA
+            simulation_1_results$glmer_error_rate[current_condition] <- NA
+
+            simulation_1_results$rpcmtree_time[current_condition] <- NA
+            simulation_1_results$lr_time[current_condition] <- NA
+            simulation_1_results$rpcmtree_time_min[current_condition] <- NA
+            simulation_1_results$lr_time_min[current_condition] <- NA
+            simulation_1_results$rpcmtree_time_max[current_condition] <- NA
+            simulation_1_results$lr_time_max[current_condition] <- NA
+
+            simulation_1_results$rpcm_rmse[current_condition] <- NA
+            simulation_1_results$glmer_rmse[current_condition] <- NA
+
+            simulation_1_results$rpcm_aris[current_condition] <- NA
+            simulation_1_results$glmer_aris[current_condition] <- NA
+            next
+        } else {
+            simulated_conditions <- c(simulated_conditions, current_condition)
+        }
 
         if (should_log) {
             log_current_condition(
@@ -188,7 +247,6 @@ if (options$run_simulation_study_1) {
             log_condition_results(condition_results)
             tictoc::toc()
         }
-
         simulation_1_results <- append_condition_results(
             condition_results = condition_results,
             simulation_results = simulation_1_results,
@@ -198,11 +256,22 @@ if (options$run_simulation_study_1) {
             simulation_count = simulation_count
         )
     }
+
     if (should_log) tictoc::toc()
-    simulation_1_results <- set_row_names(simulation_1_results, conditions)
-} else {
-    if (should_log) print("Skipped simulation study I")
-    simulation_1_results <- NA
+    simulation_1_results <- set_row_names(
+        simulation_1_results,
+        conditions
+    )
+    file_name <- paste(
+        "Simulation_1_Results_conditions_",
+        paste(simulated_conditions, collapse = "_"),
+        ".RData",
+        sep = ""
+    )
+    save(
+        simulation_1_results,
+        file = file.path(options$output_file_path, file_name)
+    )
 }
 
 ## MARK: - Simulation Studie 2
@@ -271,18 +340,9 @@ if (options$run_simulation_study_2) {
     }
     if (should_log) tictoc::toc() ## 1484.347 sec elapsed
     simulation_2_results <- set_row_names(simulation_2_results, conditions)
-} else {
-    if (should_log) print("Skipped simulation study II")
-    simulation_2_results <- NA
+    save(
+        simulation_2_results,
+        file = file.path(options$output_file_path, "Simulation_2_Results.RData")
+    )
 }
-
-simulation_results <- list(
-    study_1 = simulation_1_results,
-    study_2 = simulation_2_results
-)
-
-save(
-    simulation_results,
-    file = file.path(options$output_file_path, "Simulation_Results.RData")
-)
 parallel::stopCluster(cluster)
