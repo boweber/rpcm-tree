@@ -2,7 +2,7 @@
 
 export(glmer_fit)
 export(rpcm_fit)
-export(rpcm_tree)
+export(rpcmtree)
 import(R6)
 import(Rcpp)
 import(dplyr)

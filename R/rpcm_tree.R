@@ -13,12 +13,12 @@
 #' @param ... Arguments passed to the underlying functions.
 #' @return A rasch poisson count model tree based on the input data.
 #' @export
-rpcm_tree <- function(formula,
-                      data,
-                      reltol = 1e-10,
-                      maxit = 100L,
-                      fitting_func = rpcm_fit,
-                      ...) {
+rpcmtree <- function(formula,
+                     data,
+                     reltol = 1e-10,
+                     maxit = 100L,
+                     fitting_func = rpcm_fit,
+                     ...) {
     call <- match.call(expand.dots = TRUE)
 
     ## use dots for setting up mob_control
